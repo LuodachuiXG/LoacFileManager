@@ -3,26 +3,49 @@ package cc.loac.frame;
 import cc.loac.common.Tool;
 import cc.loac.dao.MyIni;
 import cc.loac.myenum.OS;
-import javafx.scene.text.Text;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Home extends JFrame implements ActionListener, WindowListener, ComponentListener {
+public class Home extends JFrame implements ActionListener, WindowListener, ComponentListener, ListSelectionListener {
     private final MyIni myIni = MyIni.getInstance();
     // 记录窗口默认位置
     private Point point = myIni.getHomeLocation();
+
     // 记录窗口默认大小
     private Dimension dimension = myIni.getHomeSize();
 
+    // 菜单栏和菜单
+    private JMenuBar menuBar;
+    private JMenu menu_file;
+    private JMenuItem menu_file_exit;
+
     private JPanel panel_borderLayout;
+
+    // ToolBar 面板及组件
+    private JPanel panel_toolBar;
+    private JButton button_toolBar_pre;
+    private JButton button_toolBar_next;
+    private JTextField textField_toolBar_path;
+    private JButton button_toolBar_go;
+
+    // jList_rootDir 列表
     private JList jList_rootDir;
-    // jList_rootDir 的列表数据
     private List<String> jList_rootDirData = new ArrayList<>();
+
+    // jList_files 列表
+    private JList jList_files;
+    private List<String> jList_filesData = new ArrayList<>();
+
+
+    // 记录当前文件位置
+    private String currentPath;
 
     public Home() {
         super("Loac 文件管理器");
@@ -62,21 +85,49 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
      * @param frame JFrame 引用
      */
     private void initComponent(JFrame frame) {
+        // 设置菜单栏和菜单
+        menuBar = new JMenuBar();
+        menu_file = new JMenu("文件");
+        menu_file_exit = new JMenuItem("退出程序");
+        menu_file_exit.addActionListener(this);
+        menu_file.add(menu_file_exit);
+        menuBar.add(menu_file);
+
+
+        // 设置主面板 BorderLayout
         panel_borderLayout = new JPanel(new BorderLayout());
-        panel_borderLayout.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                Component component = e.getComponent();
-                jList_rootDir.setPreferredSize(new Dimension(component.getWidth() / 4, 0));
-            }
-        });
+        // 设置主面板组件事件
+        panel_borderLayout.addComponentListener(this);
 
+        // 设置 ToolBar 面板
+        panel_toolBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        button_toolBar_pre = new JButton("<");
+        button_toolBar_next = new JButton(">");
+        textField_toolBar_path = new JTextField();
+        button_toolBar_go = new JButton(">");
+
+        panel_toolBar.add(button_toolBar_pre);
+        panel_toolBar.add(button_toolBar_next);
+        panel_toolBar.add(textField_toolBar_path);
+        panel_toolBar.add(button_toolBar_go);
+
+        // 初始化 BorderLayout 左侧用于显示系统根目录（盘符）的 List
         jList_rootDir = new JList();
-        jList_rootDir.setMinimumSize(new Dimension(200, 0));
+        jList_rootDir.addListSelectionListener(this);
+
+        // 初始化 Center 用于展示文件夹的 List
+        jList_files = new JList();
 
 
+
+        // 设置菜单栏
+        frame.setJMenuBar(menuBar);
+        // 添加组件到主面板
         panel_borderLayout.add(jList_rootDir, BorderLayout.WEST);
+        panel_borderLayout.add(jList_files, BorderLayout.CENTER);
+        panel_borderLayout.add(panel_toolBar, BorderLayout.NORTH);
         frame.add(panel_borderLayout);
+
     }
 
     /**
@@ -91,6 +142,7 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
         } else {
             rootDirs = new File("/").listFiles();
         }
+        // 将根目录文件夹（盘符）添加到 jList_rootDirData，用作 jList_rootDir 列表数据
         assert rootDirs != null;
         for(File rootDir: rootDirs) {
             String dir = Tool.getOSName() == OS.OS_WINDOW ? rootDir.getPath() : "/" + rootDir.getName();
@@ -101,14 +153,42 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
         jList_rootDir.setListData(jList_rootDirData.toArray());
     }
 
+    /**
+     * 根据主面板 panel_borderLayout 大小设置组件大小
+     */
+    private void updateComponentSize() {
+        Dimension dimension = panel_borderLayout.getSize();
+
+        // 设置 jList_rootDir 列表宽度
+        jList_rootDir.setSize(new Dimension((int) (dimension.getWidth() / 4), (int) dimension.getHeight()));
+
+        // 设置 textField_toolBar_path 宽度
+        textField_toolBar_path.setPreferredSize(
+                new Dimension((int) (panel_toolBar.getWidth() * 0.9), button_toolBar_go.getHeight())
+        );
+    }
+
+
+    /**
+     * 设置当前 Path
+     * @param path
+     */
+    private void setCurrentPath(String path) {
+        currentPath = path;
+        textField_toolBar_path.setText(currentPath);
+    }
+
 
     /**
      * 按钮点击事件
-     * @param e the event to be processed
+     * @param actionEvent the event to be processed
      */
     @Override
-    public void actionPerformed(ActionEvent e) {
-
+    public void actionPerformed(ActionEvent actionEvent) {
+        if (actionEvent.getSource() == menu_file_exit) {
+            // 菜单 文件-退出程序 点击事件
+            System.exit(0);
+        }
     }
 
 
@@ -185,7 +265,11 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
      */
     @Override
     public void componentResized(ComponentEvent e) {
-
+        if (e.getSource() == panel_borderLayout) {
+            // 主面板大小改变事件
+            // 根据主面板大小更新组件大小
+            updateComponentSize();
+        }
     }
 
     /**
@@ -213,5 +297,31 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
     @Override
     public void componentHidden(ComponentEvent e) {
 
+    }
+
+    /**
+     * List Item 选择事件
+     * @param listSelectionEvent the event that characterizes the change.
+     */
+    @Override
+    public void valueChanged(ListSelectionEvent listSelectionEvent) {
+        if (listSelectionEvent.getSource() == jList_rootDir) {
+            // 根目录 List Item 选择事件
+            int index = jList_rootDir.getSelectedIndex();
+            String path = jList_rootDirData.get(index);
+            try {
+                File[] files = new File(path).listFiles();
+                jList_filesData.clear();
+                // 将当前根目录下的文件添加到 JList_filesData 列表
+                for (File file : files) {
+                    jList_filesData.add(file.getName());
+                }
+                jList_files.setListData(jList_filesData.toArray());
+                setCurrentPath(path);
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+                JOptionPane.showMessageDialog(null, "打开文件夹失败，可能文件夹有权限无法访问", "访问失败", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 }
