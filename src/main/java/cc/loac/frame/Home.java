@@ -41,6 +41,7 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
 
     // jList_files 列表
     private JList jList_files;
+    private JScrollPane scrollPane_jList_files;
     private List<String> jList_filesData = new ArrayList<>();
 
 
@@ -105,11 +106,17 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
         button_toolBar_next = new JButton(">");
         textField_toolBar_path = new JTextField();
         button_toolBar_go = new JButton(">");
+        // 按钮默认禁用
+        button_toolBar_pre.setEnabled(false);
+        button_toolBar_next.setEnabled(false);
+
+
 
         panel_toolBar.add(button_toolBar_pre);
         panel_toolBar.add(button_toolBar_next);
         panel_toolBar.add(textField_toolBar_path);
         panel_toolBar.add(button_toolBar_go);
+
 
         // 初始化 BorderLayout 左侧用于显示系统根目录（盘符）的 List
         jList_rootDir = new JList();
@@ -117,7 +124,8 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
 
         // 初始化 Center 用于展示文件夹的 List
         jList_files = new JList();
-
+//        scrollPane_jList_files = new JScrollPane();
+//        scrollPane_jList_files.add(jList_files);
 
 
         // 设置菜单栏
@@ -160,7 +168,10 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
         Dimension dimension = panel_borderLayout.getSize();
 
         // 设置 jList_rootDir 列表宽度
-        jList_rootDir.setSize(new Dimension((int) (dimension.getWidth() / 4), (int) dimension.getHeight()));
+//        jList_rootDir.setSize(new Dimension((int) (dimension.getWidth() / 4), (int) dimension.getHeight()));
+
+//        jList_files.setPreferredSize(new Dimension(scrollPane_jList_files.getWidth(), scrollPane_jList_files.getHeight()));
+
 
         // 设置 textField_toolBar_path 宽度
         textField_toolBar_path.setPreferredSize(
