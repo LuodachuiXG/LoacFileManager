@@ -107,7 +107,7 @@ public class MyIni {
      * 获取 Home 窗口显示文件的列表是否允许显示隐藏文件
      */
     public boolean getHomeTableFileShowHidden() {
-        Object obj = _wini.get(OPTION_TABLE_FILE_SHOW_HIDDEN);
+        Object obj = _wini.get(SECTION_HOME, OPTION_TABLE_FILE_SHOW_HIDDEN);
         String str = (obj == null ? "false" : String.valueOf(obj));
         return Boolean.parseBoolean(str);
     }

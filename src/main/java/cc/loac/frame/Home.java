@@ -17,6 +17,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -51,6 +52,8 @@ public class Home extends JFrame implements ActionListener, WindowListener,
 
     /* table_files 表格，展示文件夹中文件 */
     private JTable table_files;
+    // 存储当前表格实际显示的文件
+    private List<File> table_files_Data;
     private String[] table_files_column = {"名称", "大小", "修改时间"};
     private DefaultTableModel table_files_model;
     private JScrollPane scrollPane_jList_files;
@@ -61,11 +64,16 @@ public class Home extends JFrame implements ActionListener, WindowListener,
     private JMenuItem popupMenu_table_files_showHidden;
     private JMenuItem popupMenu_table_files_copy;
     private JMenuItem popupMenu_table_files_cut;
-    private JMenuItem popupMenu_table_files_paste;
     private JMenuItem popupMenu_table_files_rename;
 
     // 记录当前文件位置
     private String currentPath;
+
+    // 记录文件表格是否显示隐藏文件
+    private boolean showHiddenFile = false;
+
+    // 记录当前复制的文件
+    private File[] currentCopyFiles;
 
     public Home() {
         super("Loac 文件管理器");
@@ -164,9 +172,8 @@ public class Home extends JFrame implements ActionListener, WindowListener,
         popupMenu_table_files = new JPopupMenu();
         popupMenu_table_files_newFile = new JMenuItem("新建文件");
         popupMenu_table_files_newDir = new JMenuItem("新建文件夹");
-        popupMenu_table_files_copy = new JMenuItem("复制");
-        popupMenu_table_files_cut = new JMenuItem("剪切");
-        popupMenu_table_files_paste = new JMenuItem("粘贴");
+        popupMenu_table_files_copy = new JMenuItem("复制到");
+        popupMenu_table_files_cut = new JMenuItem("剪切到");
         popupMenu_table_files_del = new JMenuItem("删除文件");
         popupMenu_table_files_rename = new JMenuItem("重命名");
         popupMenu_table_files_showHidden = new JMenuItem("显示隐藏文件");
@@ -176,13 +183,14 @@ public class Home extends JFrame implements ActionListener, WindowListener,
         popupMenu_table_files_newDir.addActionListener(this);
         popupMenu_table_files_copy.addActionListener(this);
         popupMenu_table_files_cut.addActionListener(this);
-        popupMenu_table_files_paste.addActionListener(this);
         popupMenu_table_files_del.addActionListener(this);
         popupMenu_table_files_rename.addActionListener(this);
         popupMenu_table_files_showHidden.addActionListener(this);
 
-        // 根据配置文件获取当前是让 “显示隐藏文件” 菜单处于选中状态
-        popupMenu_table_files_showHidden.setSelected(myIni.getHomeTableFileShowHidden());
+        // 根据配置文件获取当前 “显示隐藏文件” 按钮要显示的文字
+        showHiddenFile = myIni.getHomeTableFileShowHidden();
+        updatePopMenuShowHiddenText(showHiddenFile);
+
 
         // 将菜单项添加到弹出菜单
         popupMenu_table_files.add(popupMenu_table_files_newFile);
@@ -190,7 +198,6 @@ public class Home extends JFrame implements ActionListener, WindowListener,
         popupMenu_table_files.addSeparator();
         popupMenu_table_files.add(popupMenu_table_files_copy);
         popupMenu_table_files.add(popupMenu_table_files_cut);
-        popupMenu_table_files.add(popupMenu_table_files_paste);
         popupMenu_table_files.addSeparator();
         popupMenu_table_files.add(popupMenu_table_files_del);
         popupMenu_table_files.add(popupMenu_table_files_rename);
@@ -259,13 +266,14 @@ public class Home extends JFrame implements ActionListener, WindowListener,
 
             // 先清空 table_files_model
             table_files_model.setRowCount(0);
+            // 清空 table_files_Data
+            table_files_Data = new ArrayList<>();
             // 将当前根目录下的文件添加到 JList_filesData 列表
             for (int i = 0; i < files.length; i++) {
                 File file = files[i];
 
                 // 判断是否设置了允许显示隐藏文件
-                boolean showHidden = myIni.getHomeTableFileShowHidden();
-                if (file.isHidden() && !showHidden) {
+                if (file.isHidden() && !showHiddenFile) {
                     continue;
                 }
 
@@ -282,7 +290,10 @@ public class Home extends JFrame implements ActionListener, WindowListener,
                 }
                 // 第三列是修改时间
                 rowData[2] = Tool.formatDate(new Date(file.lastModified()));
+                // 将行数据添加到 table
                 table_files_model.addRow(rowData);
+                // 将当前文件添加到
+                table_files_Data.add(file);
             }
 
             currentPath = path;
@@ -311,6 +322,163 @@ public class Home extends JFrame implements ActionListener, WindowListener,
     }
 
     /**
+     * 设置表格弹出菜单项 “显示隐藏文件” 菜单当前显示文字
+     * @param showHidden
+     */
+    private void updatePopMenuShowHiddenText(boolean showHidden) {
+        if (showHidden) {
+            popupMenu_table_files_showHidden.setText("不显示隐藏文件");
+        } else {
+            popupMenu_table_files_showHidden.setText("显示隐藏文件");
+        }
+    }
+
+    /**
+     * 保存数据并退出程序
+     */
+    private void exitApp() {
+        // 在程序关闭时记录窗口大小和位置
+        Dimension ds = this.getSize();
+        Point pt = this.getLocation();
+        myIni.setHomeLocation((int) pt.getX(), (int) pt.getY());
+        myIni.setHomeSize((int) ds.getWidth(), (int) ds.getHeight());
+        System.exit(0);
+    }
+
+
+    /**
+     * 删除文件
+     * @param files 文件数组
+     */
+    private void deleteFiles(File[] files) {
+        int errorCount = 0;
+        List<File> errorFiles = new ArrayList<>();
+        for (File file : files) {
+            if (!file.delete()) {
+                errorCount++;
+                errorFiles.add(file);
+            }
+        }
+
+        // 删除失败数量 > 0，显示失败的文件
+        if (errorCount > 0) {
+            StringBuilder msg = new StringBuilder("删除成功：" + (files.length - errorCount) + "，失败：" + errorCount + "\n失败文件：\n");
+            errorFiles.forEach(file -> msg.append(file.getPath()));
+            Alert.error(msg.toString());
+        } else {
+            Alert.info("删除成功：" + files.length);
+            // 刷新表格数据
+            setCurrentPath(currentPath);
+        }
+    }
+
+    /**
+     * 重命名文件
+     * @param file 文件对象
+     * @param newName 新文件名
+     */
+    private void renameFile(File file, String newName) {
+        String newPath = file.getParent() + File.separator + newName;
+        File newFile = new File(newPath);
+        if (!file.renameTo(newFile)) {
+            Alert.error("重命名失败");
+        } else {
+            // 刷新表格数据
+            setCurrentPath(currentPath);
+        }
+    }
+
+
+    /**
+     * 新建文件/文件夹
+     * @param name 要生成的文件名（包括路径和名称）
+     * @param isDir 新建文件是否是文件夹
+     */
+    private void createFile(String name, boolean isDir) {
+        File file = new File(name);
+        if (file.exists()) {
+            Alert.error("新建失败，" + (isDir ? "文件夹" : "文件") + "已存在");
+        } else {
+            try {
+                boolean b;
+                if (isDir) {
+                    b = file.mkdir();
+                } else {
+                    b = file.createNewFile();
+                }
+                if (b) {
+                    // 新建成功，刷新文件表格
+                    setCurrentPath(currentPath);
+                } else {
+                    Alert.error("新建" + (isDir ? "文件夹" : "文件") + "失败");
+                }
+            } catch (Exception e) {
+                Alert.error("新建失败，" + e.getMessage());
+            }
+        }
+    }
+
+
+    /**
+     * 复制或剪切
+     * @param files 文件对象数组
+     * @param isCut 是否是剪切
+     */
+    public void copyOrCut(File[] files, boolean isCut) {
+        if (files.length == 0) {
+            return;
+        }
+        String title = isCut ? "剪切到" : "复制到";
+        // 设置默认目录为当前文件的目录
+        JFileChooser jfc = new JFileChooser(files[0].getParent());
+        // 设置目录选择窗口标题
+        jfc.setDialogTitle(title);
+        // 设置仅选择目录
+        jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        // 显示目录选择器
+        int option = jfc.showOpenDialog(null);
+        if (option == JFileChooser.APPROVE_OPTION) {
+            // 获取刚才选择的目录
+            File newFile = jfc.getSelectedFile();
+
+            // 错误数量
+            int errorCount = 0;
+            List<File> errorFiles = new ArrayList<>();
+            for (File file : files) {
+                if (isCut) {
+                    // 剪切
+                    if (!file.renameTo(new File(newFile.getPath() + File.separator + file.getName()))) {
+                        errorCount++;
+                        errorFiles.add(file);
+                    }
+                } else {
+                    // 复制
+                    try {
+                        File copy = new File(newFile.getPath() + File.separator + file.getName());
+                        Files.copy(file.toPath(), copy.toPath());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        errorCount++;
+                        errorFiles.add(file);
+                    }
+                }
+            }
+
+            // 操作失败数量 > 0，显示失败的文件
+            if (errorCount > 0) {
+                StringBuilder msg = new StringBuilder((isCut ? "移动" : "复制") + "成功：" + (files.length - errorCount) +
+                        "，失败：" + errorCount + "\n失败文件：\n");
+                errorFiles.forEach(file -> msg.append(file.getPath()));
+                Alert.error(msg.toString());
+            } else {
+                Alert.info((isCut ? "移动" : "复制") + "成功：" + files.length);
+                // 刷新表格数据
+                setCurrentPath(currentPath);
+            }
+        }
+    }
+
+    /**
      * 按钮点击事件
      * @param actionEvent the event to be processed
      */
@@ -318,16 +486,63 @@ public class Home extends JFrame implements ActionListener, WindowListener,
     public void actionPerformed(ActionEvent actionEvent) {
         Object source = actionEvent.getSource();
         if (source == menu_file_exit) {
-            // 菜单 文件-退出程序 点击事件
-            System.exit(0);
-        } else if (source == button_toolBar_go) {
-            // 工具栏转到按钮点击事件，跳转指定目录
-            setCurrentPath(textField_toolBar_path.getText());
-            try {
+            /* 菜单 文件-退出程序 点击事件 */
+            exitApp();
 
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+        } else if (source == button_toolBar_go) {
+            /* 工具栏转到按钮点击事件，跳转指定目录 */
+            setCurrentPath(textField_toolBar_path.getText());
+
+        } else if (source == popupMenu_table_files_showHidden) {
+            /* 文件表格右键菜单项-显示隐藏文件点击事件 */
+            showHiddenFile = !showHiddenFile;
+            myIni.setHomeTableFileShowHidden(showHiddenFile);
+            updatePopMenuShowHiddenText(showHiddenFile);
+            // 设置后刷新文件表格数据
+            setCurrentPath(currentPath);
+
+        } else if (source == popupMenu_table_files_del) {
+            /* 文件表格右键菜单项-删除文件点击事件 */
+            // 获取表格中选中的行
+            int[] selectedRows = table_files.getSelectedRows();
+            if (Alert.confirm("确定要删除选中的 " + selectedRows.length + " 个文件吗，此操作不可逆")) {
+                // 将行中选择的索引转为 File 列表
+                File[] files = new File[selectedRows.length];
+                for (int i = 0; i < selectedRows.length; i++) {
+                    files[i] = table_files_Data.get(selectedRows[i]);
+                }
+                // 删除文件
+                deleteFiles(files);
             }
+
+        } else if (source == popupMenu_table_files_rename) {
+            /* 文件表格右键菜单项-重命名点击事件 */
+            int selectedRow = table_files.getSelectedRow();
+            File file = table_files_Data.get(selectedRow);
+            String name = Alert.inputWithValue("输入新文件名：", file.getName());
+            renameFile(file, name);
+
+        } else if (source == popupMenu_table_files_newFile) {
+            /* 文件表格右键菜单项-新建文件点击事件 */
+            String name = Alert.input("输入新建文件名：");
+            createFile(currentPath + File.separator + name, false);
+
+        } else if (source == popupMenu_table_files_newDir) {
+            /* 文件表格右键菜单项-新建文件夹点击事件 */
+            String name = Alert.input("输入新建文件夹名：");
+            createFile(currentPath + File.separator + name, true);
+
+        } else if (source == popupMenu_table_files_copy || source == popupMenu_table_files_cut) {
+            /* 文件表格右键菜单项-复制到/剪切到点击事件 */
+            // 将行中选择的索引转为 File 列表
+            int[] selectedRows = table_files.getSelectedRows();
+            File[] files = new File[selectedRows.length];
+            for (int i = 0; i < selectedRows.length; i++) {
+                files[i] = table_files_Data.get(selectedRows[i]);
+            }
+            // 复制/剪切文件
+            copyOrCut(files, source != popupMenu_table_files_copy);
+
         }
     }
 
@@ -347,11 +562,7 @@ public class Home extends JFrame implements ActionListener, WindowListener,
      */
     @Override
     public void windowClosing(WindowEvent windowEvent) {
-        // 在窗口关闭时记录窗口大小和位置
-        Window window = windowEvent.getWindow();
-        myIni.setHomeLocation(window.getX(), window.getY());
-        myIni.setHomeSize(window.getWidth(), window.getHeight());
-        System.exit(0);
+        exitApp();
     }
 
     /**
