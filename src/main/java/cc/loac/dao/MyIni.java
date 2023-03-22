@@ -21,6 +21,7 @@ public class MyIni {
     private static final String OPTION_LOCATION_Y = "location_y";
     private static final String OPTION_SIZE_WIDTH = "size_width";
     private static final String OPTION_SIZE_HEIGHT = "size_height";
+    private static final String OPTION_TABLE_FILE_SHOW_HIDDEN = "table_file_show_hidden";
 
     /**
      * 获取实例
@@ -95,6 +96,29 @@ public class MyIni {
         try {
             _wini.put(SECTION_HOME, OPTION_SIZE_WIDTH, width);
             _wini.put(SECTION_HOME, OPTION_SIZE_HEIGHT, height);
+            _wini.store();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * 获取 Home 窗口显示文件的列表是否允许显示隐藏文件
+     */
+    public boolean getHomeTableFileShowHidden() {
+        Object obj = _wini.get(OPTION_TABLE_FILE_SHOW_HIDDEN);
+        String str = (obj == null ? "false" : String.valueOf(obj));
+        return Boolean.parseBoolean(str);
+    }
+
+    /**
+     * 设置 Home 窗口显示文件的列表是否允许显示隐藏文件
+     * @param showHidden 是否允许显示隐藏文件
+     */
+    public void setHomeTableFileShowHidden(boolean showHidden) {
+        try {
+            _wini.put(SECTION_HOME, OPTION_TABLE_FILE_SHOW_HIDDEN, showHidden);
             _wini.store();
         } catch (Exception e) {
             e.printStackTrace();
