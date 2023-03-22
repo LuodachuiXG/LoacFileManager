@@ -5,9 +5,18 @@ import cc.loac.myenum.OS;
 
 import javax.swing.*;
 import javax.xml.crypto.Data;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.zip.Adler32;
+import java.util.zip.CheckedOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class Tool {
     // 获取 OS.NAME
@@ -15,6 +24,7 @@ public class Tool {
 
     /**
      * 获取 OS.NAME
+     *
      * @return OS
      */
     public static OS getOSName() {
@@ -30,6 +40,7 @@ public class Tool {
     /**
      * 格式化文件大小文字
      * 例如将 2048 格式化为 2KB
+     *
      * @param length
      * @return
      */
@@ -49,6 +60,7 @@ public class Tool {
 
     /**
      * 格式化日期
+     *
      * @param date
      * @return
      */
@@ -67,5 +79,46 @@ public class Tool {
         }
         result = sdf.format(date);
         return result;
+    }
+
+    /**
+     * 压缩zip
+     * @param filePath 要压缩的文件
+     * @param outPath 输出地址
+     * @return 输出地址
+     * @throws Exception
+     */
+    public static String compressFileByZIP(String filePath, String outPath) throws Exception {
+        File file = new File(filePath);
+        String outPutFileName = outPath + ".zip";
+        ArrayList<File> fileList = new ArrayList<>();
+        if (file.isDirectory()) {
+            fileList.addAll(Arrays.asList(file.listFiles()));
+        } else {
+            fileList.add(file);
+        }
+        FileInputStream fileInputStream = null;
+        CheckedOutputStream checkedOutputStream = new CheckedOutputStream(new FileOutputStream(outPutFileName), new Adler32());
+        ZipOutputStream zipOutputStream = new ZipOutputStream(checkedOutputStream);
+        for (File f : fileList) {
+            if (f.isDirectory()) {
+                continue;
+            }
+            zipOutputStream.putNextEntry(new ZipEntry(f.getName()));
+            fileInputStream = new FileInputStream(f);
+            byte[] bytes = new byte[1024];
+            int read;
+            while ((read = fileInputStream.read(bytes)) != -1) {
+                zipOutputStream.write(bytes);
+            }
+        }
+        byte[] bytes = new byte[1024];
+        int read;
+        while ((read = fileInputStream.read(bytes)) != -1) {
+            zipOutputStream.write(bytes);
+        }
+        fileInputStream.close();
+        zipOutputStream.close();
+        return outPutFileName;
     }
 }

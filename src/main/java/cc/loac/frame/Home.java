@@ -18,8 +18,7 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
 
 public class Home extends JFrame implements ActionListener, WindowListener,
@@ -58,6 +57,8 @@ public class Home extends JFrame implements ActionListener, WindowListener,
     private DefaultTableModel table_files_model;
     private JScrollPane scrollPane_jList_files;
     private JPopupMenu popupMenu_table_files;
+    private JMenuItem popupMenu_table_files_open;
+    private JMenuItem popupMenu_table_files_compress;
     private JMenuItem popupMenu_table_files_newFile;
     private JMenuItem popupMenu_table_files_newDir;
     private JMenuItem popupMenu_table_files_del;
@@ -72,8 +73,11 @@ public class Home extends JFrame implements ActionListener, WindowListener,
     // 记录文件表格是否显示隐藏文件
     private boolean showHiddenFile = false;
 
-    // 记录当前复制的文件
-    private File[] currentCopyFiles;
+    // 记录当前文件夹的数组，用于前进后退
+    // 设置最大长度为 10 ，将在 updatePreAndNextButtonState 方法中约束
+    private List<String> listPath = new ArrayList<>();
+    // 当前地址在 listPath 中的索引
+    private int listPath_index = 0;
 
     public Home() {
         super("Loac 文件管理器");
@@ -133,7 +137,11 @@ public class Home extends JFrame implements ActionListener, WindowListener,
         button_toolBar_next = new JButton(">");
         textField_toolBar_path = new JTextField("/");
         button_toolBar_go = new JButton("转到");
+
+        button_toolBar_pre.addActionListener(this);
+        button_toolBar_next.addActionListener(this);
         button_toolBar_go.addActionListener(this);
+
         // 按钮默认禁用
         button_toolBar_pre.setEnabled(false);
         button_toolBar_next.setEnabled(false);
@@ -170,8 +178,10 @@ public class Home extends JFrame implements ActionListener, WindowListener,
 
         /* 设置 table_files 的右键弹出菜单 */
         popupMenu_table_files = new JPopupMenu();
+        popupMenu_table_files_open = new JMenuItem("打开");
         popupMenu_table_files_newFile = new JMenuItem("新建文件");
         popupMenu_table_files_newDir = new JMenuItem("新建文件夹");
+        popupMenu_table_files_compress = new JMenuItem("压缩");
         popupMenu_table_files_copy = new JMenuItem("复制到");
         popupMenu_table_files_cut = new JMenuItem("剪切到");
         popupMenu_table_files_del = new JMenuItem("删除文件");
@@ -179,8 +189,10 @@ public class Home extends JFrame implements ActionListener, WindowListener,
         popupMenu_table_files_showHidden = new JMenuItem("显示隐藏文件");
 
         // 添加菜单项点击事件
+        popupMenu_table_files_open.addActionListener(this);
         popupMenu_table_files_newFile.addActionListener(this);
         popupMenu_table_files_newDir.addActionListener(this);
+        popupMenu_table_files_compress.addActionListener(this);
         popupMenu_table_files_copy.addActionListener(this);
         popupMenu_table_files_cut.addActionListener(this);
         popupMenu_table_files_del.addActionListener(this);
@@ -193,8 +205,11 @@ public class Home extends JFrame implements ActionListener, WindowListener,
 
 
         // 将菜单项添加到弹出菜单
+        popupMenu_table_files.add(popupMenu_table_files_open);
         popupMenu_table_files.add(popupMenu_table_files_newFile);
         popupMenu_table_files.add(popupMenu_table_files_newDir);
+        popupMenu_table_files.addSeparator();
+        popupMenu_table_files.add(popupMenu_table_files_compress);
         popupMenu_table_files.addSeparator();
         popupMenu_table_files.add(popupMenu_table_files_copy);
         popupMenu_table_files.add(popupMenu_table_files_cut);
@@ -249,8 +264,9 @@ public class Home extends JFrame implements ActionListener, WindowListener,
     /**
      * 设置当前路径
      * @param path
+     * @param isNotAddList 不将当前路径加入 listPath 集合中（如果已经是前进后退操作，这里设 true）
      */
-    private void setCurrentPath(String path) {
+    private void setCurrentPath(String path, boolean isNotAddList) {
         try {
             File pathFile = new File(path);
             if (!pathFile.exists()) {
@@ -296,11 +312,76 @@ public class Home extends JFrame implements ActionListener, WindowListener,
                 table_files_Data.add(file);
             }
 
+            // 设置当前目录地址到全局变量
             currentPath = path;
+            // 设置工具栏地址栏文本
             textField_toolBar_path.setText(currentPath);
+
+            if (isNotAddList) {
+                // 不将当前地址加入 listPath，这里默认是前进后退操作
+            } else {
+                // 将当前地址加入 list
+                listPathAdd(currentPath);
+            }
+
+            // 设置前进后退按钮状态
+            updatePreAndNextButtonState();
+
         } catch (Exception e) {
             System.out.println(e.getMessage());
             Alert.error("打开文件夹失败，可能当前文件夹有权限无法访问");
+        }
+    }
+
+
+    /**
+     * 将地址加入 listPath,以便前进后退操作
+     * 不能大于 10
+     * 加入后默认将当前索引指向 listPath 最后一个
+     * @param path
+     */
+    private void listPathAdd(String path) {
+        if (listPath.size() >= 10) {
+            // 如果大于等于 10 就减去首元素
+            listPath.remove(0);
+            if (listPath_index >= 1) {
+                listPath_index--;
+            }
+        }
+
+        int index = listPath.indexOf(path);
+        if (index >= 0) {
+            // 有重复的就删除
+            listPath.remove(index);
+        }
+
+        // 添加元素后将索引指向最后一个
+        listPath.add(path);
+        listPath_index = listPath.size() - 1;
+
+    }
+
+    /**
+     * 根据 listPath 设置前进和后退按钮状态
+     * 最大长度不超过 10
+     */
+    private void updatePreAndNextButtonState() {
+        if (listPath.size() > 0) {
+            if (listPath_index != 0 && listPath_index != listPath.size() - 1) {
+                // listPath_index 位于首尾中间，前进后退按钮均启用
+                button_toolBar_pre.setEnabled(true);
+                button_toolBar_next.setEnabled(true);
+            } else if (listPath_index == 0) {
+                button_toolBar_pre.setEnabled(false);
+                button_toolBar_next.setEnabled(true);
+            } else if (listPath_index == listPath.size() - 1){
+                button_toolBar_pre.setEnabled(true);
+                button_toolBar_next.setEnabled(false);
+            }
+        } else {
+            // listPath 长度小于等于 0，前进后退按钮均禁止
+            button_toolBar_pre.setEnabled(false);
+            button_toolBar_next.setEnabled(false);
         }
     }
 
@@ -368,7 +449,7 @@ public class Home extends JFrame implements ActionListener, WindowListener,
         } else {
             Alert.info("删除成功：" + files.length);
             // 刷新表格数据
-            setCurrentPath(currentPath);
+            setCurrentPath(currentPath, false);
         }
     }
 
@@ -384,7 +465,7 @@ public class Home extends JFrame implements ActionListener, WindowListener,
             Alert.error("重命名失败");
         } else {
             // 刷新表格数据
-            setCurrentPath(currentPath);
+            setCurrentPath(currentPath, false);
         }
     }
 
@@ -408,7 +489,7 @@ public class Home extends JFrame implements ActionListener, WindowListener,
                 }
                 if (b) {
                     // 新建成功，刷新文件表格
-                    setCurrentPath(currentPath);
+                    setCurrentPath(currentPath, false);
                 } else {
                     Alert.error("新建" + (isDir ? "文件夹" : "文件") + "失败");
                 }
@@ -473,7 +554,25 @@ public class Home extends JFrame implements ActionListener, WindowListener,
             } else {
                 Alert.info((isCut ? "移动" : "复制") + "成功：" + files.length);
                 // 刷新表格数据
-                setCurrentPath(currentPath);
+                setCurrentPath(currentPath, false);
+            }
+        }
+    }
+
+    /**
+     * 打开文件/文件夹
+     * 如果是文件夹就跳转，是文件就打开
+     * @param file
+     */
+    private void openFile(File file) {
+        if (file.isDirectory()) {
+            setCurrentPath(file.getPath(), false);
+        } else {
+            try {
+                Desktop desktop = Desktop.getDesktop();
+                desktop.open(file);
+            } catch (Exception e) {
+                Alert.error("打开文件失败，" + e.getMessage());
             }
         }
     }
@@ -491,7 +590,7 @@ public class Home extends JFrame implements ActionListener, WindowListener,
 
         } else if (source == button_toolBar_go) {
             /* 工具栏转到按钮点击事件，跳转指定目录 */
-            setCurrentPath(textField_toolBar_path.getText());
+            setCurrentPath(textField_toolBar_path.getText(), false);
 
         } else if (source == popupMenu_table_files_showHidden) {
             /* 文件表格右键菜单项-显示隐藏文件点击事件 */
@@ -499,7 +598,7 @@ public class Home extends JFrame implements ActionListener, WindowListener,
             myIni.setHomeTableFileShowHidden(showHiddenFile);
             updatePopMenuShowHiddenText(showHiddenFile);
             // 设置后刷新文件表格数据
-            setCurrentPath(currentPath);
+            setCurrentPath(currentPath, false);
 
         } else if (source == popupMenu_table_files_del) {
             /* 文件表格右键菜单项-删除文件点击事件 */
@@ -520,17 +619,18 @@ public class Home extends JFrame implements ActionListener, WindowListener,
             int selectedRow = table_files.getSelectedRow();
             File file = table_files_Data.get(selectedRow);
             String name = Alert.inputWithValue("输入新文件名：", file.getName());
+            if (name == null || name.length() == 0) {
+                return;
+            }
             renameFile(file, name);
 
-        } else if (source == popupMenu_table_files_newFile) {
-            /* 文件表格右键菜单项-新建文件点击事件 */
-            String name = Alert.input("输入新建文件名：");
-            createFile(currentPath + File.separator + name, false);
-
-        } else if (source == popupMenu_table_files_newDir) {
-            /* 文件表格右键菜单项-新建文件夹点击事件 */
-            String name = Alert.input("输入新建文件夹名：");
-            createFile(currentPath + File.separator + name, true);
+        } else if (source == popupMenu_table_files_newFile || source == popupMenu_table_files_newDir) {
+            /* 文件表格右键菜单项-新建文件/新建文件夹点击事件 */
+            String name = Alert.input("输入新建文件" + (source == popupMenu_table_files_newDir ? "夹" : "") + "名：");
+            if (name == null || name.length() == 0) {
+                return;
+            }
+            createFile(currentPath + File.separator + name, source == popupMenu_table_files_newDir);
 
         } else if (source == popupMenu_table_files_copy || source == popupMenu_table_files_cut) {
             /* 文件表格右键菜单项-复制到/剪切到点击事件 */
@@ -543,6 +643,37 @@ public class Home extends JFrame implements ActionListener, WindowListener,
             // 复制/剪切文件
             copyOrCut(files, source != popupMenu_table_files_copy);
 
+        } else if (source == popupMenu_table_files_open) {
+            /* 文件表格右键菜单项-打开点击事件 */
+            int selectedRow = table_files.getSelectedRow();
+            File file = table_files_Data.get(selectedRow);
+            openFile(file);
+
+        } else if (source == button_toolBar_pre) {
+            /* 工具栏-后退按钮点击事件 */
+            setCurrentPath(listPath.get(--listPath_index), true);
+
+        } else if (source == button_toolBar_next) {
+            /* 工具栏-前进按钮点击事件 */
+            setCurrentPath(listPath.get(++listPath_index), true);
+
+        } else if (source == popupMenu_table_files_compress) {
+            /* 工具栏-压缩按钮点击事件 */
+            try {
+                int selectedRow = table_files.getSelectedRow();
+                File file = table_files_Data.get(selectedRow);
+                String name = Alert.input("请输入压缩包文件名：");
+                if (name == null || name.length() == 0) {
+                    return;
+                }
+                Tool.compressFileByZIP(file.getPath(), file.getParent() + File.separator + name);
+                Alert.info("压缩成功");
+                // 刷新表格
+                setCurrentPath(currentPath, false);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Alert.info("压缩失败，" + e.getMessage());
+            }
         }
     }
 
@@ -659,7 +790,7 @@ public class Home extends JFrame implements ActionListener, WindowListener,
         if (listSelectionEvent.getSource() == list_rootDir) {
             // 根目录 List Item 选择事件
             int index = list_rootDir.getSelectedIndex();
-            setCurrentPath(list_rootDirData.get(index));
+            setCurrentPath(list_rootDirData.get(index), false);
         }
     }
 
@@ -682,7 +813,7 @@ public class Home extends JFrame implements ActionListener, WindowListener,
             // 地址框按下某个键事件
             if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                 // 地址框按下回车键，跳转目录
-                setCurrentPath(textField_toolBar_path.getText());
+                setCurrentPath(textField_toolBar_path.getText(), false);
             }
         }
     }
@@ -721,6 +852,12 @@ public class Home extends JFrame implements ActionListener, WindowListener,
                 }
                 // 弹出菜单
                 popupMenu_table_files.show(table_files, e.getX(), e.getY());
+            } else if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
+                /* table_files 文件表格左键双击事件 */
+                // 打开文件/文件夹
+                int selectedRow = table_files.getSelectedRow();
+                File file = table_files_Data.get(selectedRow);
+                openFile(file);
             }
         }
     }
