@@ -1,16 +1,23 @@
 package cc.loac.frame;
 
+import cc.loac.common.Alert;
 import cc.loac.common.Tool;
 import cc.loac.dao.MyIni;
 import cc.loac.myenum.OS;
 
 import javax.swing.*;
+import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class Home extends JFrame implements ActionListener, WindowListener, ComponentListener, ListSelectionListener {
@@ -26,6 +33,7 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
     private JMenu menu_file;
     private JMenuItem menu_file_exit;
 
+    // 页面主布局
     private JPanel panel_borderLayout;
 
     // ToolBar 面板及组件
@@ -35,14 +43,16 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
     private JTextField textField_toolBar_path;
     private JButton button_toolBar_go;
 
-    // jList_rootDir 列表
-    private JList jList_rootDir;
-    private List<String> jList_rootDirData = new ArrayList<>();
+    // list_rootDir 列表
+    private JList list_rootDir;
+    private List<String> list_rootDirData = new ArrayList<>();
 
-    // jList_files 列表
-    private JList jList_files;
+    // table_files 表格，展示文件夹中文件
+    private JTable table_files;
+    private String[] table_files_column = {"名称", "大小", "修改时间"};
+    private DefaultTableModel table_files_model;
     private JScrollPane scrollPane_jList_files;
-    private List<String> jList_filesData = new ArrayList<>();
+    private List<String> list_filesData = new ArrayList<>();
 
 
     // 记录当前文件位置
@@ -101,38 +111,48 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
         panel_borderLayout.addComponentListener(this);
 
         // 设置 ToolBar 面板
-        panel_toolBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel_toolBar = new JPanel(new GridBagLayout());
         button_toolBar_pre = new JButton("<");
         button_toolBar_next = new JButton(">");
-        textField_toolBar_path = new JTextField();
-        button_toolBar_go = new JButton(">");
+        textField_toolBar_path = new JTextField("/");
+        button_toolBar_go = new JButton("转到");
+        button_toolBar_go.addActionListener(this);
         // 按钮默认禁用
         button_toolBar_pre.setEnabled(false);
         button_toolBar_next.setEnabled(false);
-
-
-
-        panel_toolBar.add(button_toolBar_pre);
-        panel_toolBar.add(button_toolBar_next);
-        panel_toolBar.add(textField_toolBar_path);
-        panel_toolBar.add(button_toolBar_go);
+        // 向ToolBar 面板添加组件
+        addComponent(panel_toolBar, button_toolBar_pre, 0, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH);
+        addComponent(panel_toolBar, button_toolBar_next, 1, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH);
+        addComponent(panel_toolBar, textField_toolBar_path, 2, 0, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH);
+        addComponent(panel_toolBar, button_toolBar_go, 3, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH);
 
 
         // 初始化 BorderLayout 左侧用于显示系统根目录（盘符）的 List
-        jList_rootDir = new JList();
-        jList_rootDir.addListSelectionListener(this);
+        list_rootDir = new JList();
+        list_rootDir.addListSelectionListener(this);
 
-        // 初始化 Center 用于展示文件夹的 List
-        jList_files = new JList();
-//        scrollPane_jList_files = new JScrollPane();
-//        scrollPane_jList_files.add(jList_files);
+        // 初始化位于 center 用于展示文件夹和文件的 Table
+        table_files = new JTable(table_files_model) {
+            // 禁止表格编辑
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        table_files_model = new DefaultTableModel();
+        // 设置 Table 的列名
+        for (String columnName : table_files_column) {
+            table_files_model.addColumn(columnName);
+        }
+        table_files.setModel(table_files_model);
+        scrollPane_jList_files = new JScrollPane(table_files);
 
 
         // 设置菜单栏
         frame.setJMenuBar(menuBar);
         // 添加组件到主面板
-        panel_borderLayout.add(jList_rootDir, BorderLayout.WEST);
-        panel_borderLayout.add(jList_files, BorderLayout.CENTER);
+        panel_borderLayout.add(list_rootDir, BorderLayout.WEST);
+        panel_borderLayout.add(scrollPane_jList_files, BorderLayout.CENTER);
         panel_borderLayout.add(panel_toolBar, BorderLayout.NORTH);
         frame.add(panel_borderLayout);
 
@@ -150,15 +170,15 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
         } else {
             rootDirs = new File("/").listFiles();
         }
-        // 将根目录文件夹（盘符）添加到 jList_rootDirData，用作 jList_rootDir 列表数据
+        // 将根目录文件夹（盘符）添加到 list_rootDirData，用作 list_rootDir 列表数据
         assert rootDirs != null;
         for(File rootDir: rootDirs) {
             String dir = Tool.getOSName() == OS.OS_WINDOW ? rootDir.getPath() : "/" + rootDir.getName();
-            jList_rootDirData.add(dir);
+            list_rootDirData.add(dir);
         }
 
-        // 设置 jList_rootDirData 列表参数
-        jList_rootDir.setListData(jList_rootDirData.toArray());
+        // 设置 list_rootDirData 列表参数
+        list_rootDir.setListData(list_rootDirData.toArray());
     }
 
     /**
@@ -166,29 +186,72 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
      */
     private void updateComponentSize() {
         Dimension dimension = panel_borderLayout.getSize();
-
-        // 设置 jList_rootDir 列表宽度
-//        jList_rootDir.setSize(new Dimension((int) (dimension.getWidth() / 4), (int) dimension.getHeight()));
-
-//        jList_files.setPreferredSize(new Dimension(scrollPane_jList_files.getWidth(), scrollPane_jList_files.getHeight()));
-
-
-        // 设置 textField_toolBar_path 宽度
-        textField_toolBar_path.setPreferredSize(
-                new Dimension((int) (panel_toolBar.getWidth() * 0.9), button_toolBar_go.getHeight())
-        );
     }
 
 
     /**
-     * 设置当前 Path
+     * 设置当前路径
      * @param path
      */
     private void setCurrentPath(String path) {
-        currentPath = path;
-        textField_toolBar_path.setText(currentPath);
+        try {
+            File pathFile = new File(path);
+            if (!pathFile.exists()) {
+                Alert.error("跳转失败，文件夹不存在");
+                return;
+            }
+            if (!pathFile.isDirectory()) {
+                Alert.error("跳转失败，当前跳转的不是文件夹");
+                return;
+            }
+
+            File[] files = pathFile.listFiles();
+
+            // 先清空 table_files_model
+            table_files_model.setRowCount(0);
+            // 将当前根目录下的文件添加到 JList_filesData 列表
+            for (int i = 0; i < files.length; i++) {
+                File file = files[i];
+                String rowData[] = new String[3];
+                // 第一列是文件名
+                rowData[0] = file.getName();
+                // 第二列是文件大小或文件夹子项目数
+                if (file.isDirectory()) {
+                    // 如果是文件夹就显示文件夹下项目数量
+                    File[] fs = file.listFiles();
+                    rowData[1] = fs == null ? "0 个项目" : fs.length + " 个项目";
+                } else {
+                    rowData[1] = Tool.formatSize(file.length());
+                }
+                // 第三列是修改时间
+                rowData[2] = Tool.formatDate(new Date(file.lastModified()));
+                table_files_model.addRow(rowData);
+            }
+
+            currentPath = path;
+            textField_toolBar_path.setText(currentPath);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            Alert.error("打开文件夹失败，可能当前文件夹有权限无法访问");
+        }
     }
 
+    /**
+     * 向指定 GridBagLayout 添加组件
+     * @param container
+     * @param component
+     * @param gridX
+     * @param gridY
+     * @param gridWidth
+     * @param gridHeight
+     * @param anchor
+     * @param fill
+     */
+    private void addComponent(Container container, Component component, int gridX, int gridY, int gridWidth, int gridHeight, double weightX, double weightY, int anchor, int fill ) {
+        Insets insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc = new GridBagConstraints(gridX, gridY, gridWidth, gridHeight, weightX, weightY, anchor, fill, insets, 0, 0);
+        container.add(component, gbc);
+    }
 
     /**
      * 按钮点击事件
@@ -196,9 +259,18 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
      */
     @Override
     public void actionPerformed(ActionEvent actionEvent) {
-        if (actionEvent.getSource() == menu_file_exit) {
+        Object source = actionEvent.getSource();
+        if (source == menu_file_exit) {
             // 菜单 文件-退出程序 点击事件
             System.exit(0);
+        } else if (source == button_toolBar_go) {
+            // 工具栏转到按钮点击事件，跳转指定目录
+            setCurrentPath(textField_toolBar_path.getText());
+            try {
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -316,23 +388,10 @@ public class Home extends JFrame implements ActionListener, WindowListener, Comp
      */
     @Override
     public void valueChanged(ListSelectionEvent listSelectionEvent) {
-        if (listSelectionEvent.getSource() == jList_rootDir) {
+        if (listSelectionEvent.getSource() == list_rootDir) {
             // 根目录 List Item 选择事件
-            int index = jList_rootDir.getSelectedIndex();
-            String path = jList_rootDirData.get(index);
-            try {
-                File[] files = new File(path).listFiles();
-                jList_filesData.clear();
-                // 将当前根目录下的文件添加到 JList_filesData 列表
-                for (File file : files) {
-                    jList_filesData.add(file.getName());
-                }
-                jList_files.setListData(jList_filesData.toArray());
-                setCurrentPath(path);
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-                JOptionPane.showMessageDialog(null, "打开文件夹失败，可能文件夹有权限无法访问", "访问失败", JOptionPane.ERROR_MESSAGE);
-            }
+            int index = list_rootDir.getSelectedIndex();
+            setCurrentPath(list_rootDirData.get(index));
         }
     }
 }
