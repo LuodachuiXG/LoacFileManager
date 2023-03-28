@@ -70,23 +70,8 @@ public class Home extends JFrame implements ActionListener, WindowListener,
     private JMenuItem popupMenu_table_files_cut;
     private JMenuItem popupMenu_table_files_rename;
 
-
-    /* panel_table_files 用于存放两个文件浏览表格的面板（网格布局） */
-    private JPanel panel_table_files;
-
-    /* table_files_right 表格，展示文件夹中文件 */
-    private JTable table_files_right;
-    // 存储当前右表格实际显示的文件
-    private List<File> table_files_Data_right;
-    private String[] table_files_column_right = {"名称", "大小"};
-    private DefaultTableModel table_files_model_right;
-    // table_files 滚动面板
-    private JScrollPane scrollPane_jList_files_right;
-
-
     /* 记录当前文件位置 */
     private String currentPath;
-    private String currentPathRight;
 
     /* 记录文件表格是否显示隐藏文件 */
     private boolean showHiddenFile = false;
@@ -176,11 +161,6 @@ public class Home extends JFrame implements ActionListener, WindowListener,
         list_rootDir.addListSelectionListener(this);
 
 
-
-        /* 初始化用于存放两个文件浏览器表格的表格布局面板 */
-        panel_table_files = new JPanel(new GridLayout(1, 2));
-
-
         /* 初始化位于 center 用于展示文件夹和文件的 Table */
         table_files = new JTable(table_files_model) {
             // 禁止表格编辑
@@ -241,38 +221,12 @@ public class Home extends JFrame implements ActionListener, WindowListener,
         popupMenu_table_files.add(popupMenu_table_files_rename);
         popupMenu_table_files.add(popupMenu_table_files_showHidden);
 
-
-
-        /* 设置位于 center 右侧用于展示文件列表的表格 */
-        table_files_right = new JTable(table_files_model_right) {
-            // 禁止表格编辑
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        table_files_model_right = new DefaultTableModel();
-        // 设置 Table 的列名
-        for (String columnName : table_files_column_right) {
-            table_files_model_right.addColumn(columnName);
-        }
-        table_files_right.setModel(table_files_model_right);
-        table_files_right.addMouseListener(this);
-        // 将 Table 加入滚动面板
-        scrollPane_jList_files_right = new JScrollPane(table_files_right);
-
-
-        /* 将两个文件浏览表格加入 panel */
-        panel_table_files.add(scrollPane_jList_files);
-        panel_table_files.add(scrollPane_jList_files_right);
-
-
         /* 设置菜单栏 */
         frame.setJMenuBar(menuBar);
 
         /* 添加组件到主面板 */
         panel_borderLayout.add(list_rootDir, BorderLayout.WEST);
-        panel_borderLayout.add(panel_table_files, BorderLayout.CENTER);
+        panel_borderLayout.add(scrollPane_jList_files, BorderLayout.CENTER);
         panel_borderLayout.add(panel_toolBar, BorderLayout.NORTH);
         frame.add(panel_borderLayout);
 
@@ -299,9 +253,6 @@ public class Home extends JFrame implements ActionListener, WindowListener,
 
         // 设置 list_rootDirData 列表参数
         list_rootDir.setListData(list_rootDirData.toArray());
-
-        // 设置右文件浏览器默认跳转根目录
-        setCurrentPathRight("");
     }
 
     /**
@@ -383,73 +334,6 @@ public class Home extends JFrame implements ActionListener, WindowListener,
             Alert.error("打开文件夹失败，可能当前文件夹有权限无法访问");
         }
     }
-
-
-    /**
-     * 设置右文件表格当前路径
-     * @param path 跳转路径，如果为空代表跳转根目录
-     */
-    private void setCurrentPathRight(String path) {
-        try {
-            // 先清空 table_files_model_right
-            table_files_model_right.setRowCount(0);
-            // 清空 table_files_Data_right
-            table_files_Data_right = new ArrayList<>();
-
-            File pathFile;
-            List<File> files = new ArrayList<>();
-
-            if (path.isEmpty()) {
-                // path 为空，跳转根目录
-                File[] rootDirs;
-                if (Tool.getOSName() == OS.OS_WINDOW) {
-                    rootDirs = File.listRoots();
-                } else {
-                    rootDirs = new File("/").listFiles();
-                }
-                // 将根目录文件夹（盘符）添加到 list_rootDirData_right，用作 list_rootDir_right 列表数据
-                assert rootDirs != null;
-                for(File rootDir: rootDirs) {
-                    String dir = Tool.getOSName() == OS.OS_WINDOW ? rootDir.getPath() : "/" + rootDir.getName();
-                    // 将当前列表显示的实际文件加入 list
-                    File f = new File(dir);
-                    table_files_Data_right.add(f);
-                    files.add(f);
-                }
-            } else {
-                pathFile = new File(path);
-                files = List.of(Objects.requireNonNull(pathFile.listFiles()));
-            }
-
-
-            // 将当前根目录下的文件添加到 JList_filesData_right 列表
-            for (File file : files) {
-                String[] rowData = new String[2];
-                // 第一列是文件名
-                // 在 Windows 上如果此处是获取的 C:\ 盘符，可能获取 name 为空，所以这里获取 path
-                rowData[0] = file.getName().isEmpty() ? file.getPath() : file.getName();
-                // 第二列是文件大小或文件夹子项目数
-                if (file.isDirectory()) {
-                    // 如果是文件夹就显示文件夹下项目数量
-                    File[] fs = file.listFiles();
-                    rowData[1] = fs == null ? "0 个项目" : fs.length + " 个项目";
-                } else {
-                    rowData[1] = Tool.formatSize(file.length());
-                }
-                // 将行数据添加到 table
-                table_files_model_right.addRow(rowData);
-                // 将当前文件添加到
-                table_files_Data_right.add(file);
-            }
-
-            // 设置当前目录地址到全局变量
-            currentPathRight = path;
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            Alert.error("打开文件夹失败，可能当前文件夹有权限无法访问");
-        }
-    }
-
 
     /**
      * 将地址加入 listPath,以便前进后退操作
@@ -693,6 +577,7 @@ public class Home extends JFrame implements ActionListener, WindowListener,
             }
         }
     }
+
 
     /**
      * 按钮点击事件
