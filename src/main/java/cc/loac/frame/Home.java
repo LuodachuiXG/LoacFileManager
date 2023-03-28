@@ -35,8 +35,16 @@ public class Home extends JFrame implements ActionListener, WindowListener {
     private JMenu menu_file;
     private JMenuItem menu_file_exit;
 
+    private JMenu menu_tab;
+    private JMenuItem menu_tab_add;
+    private JMenuItem menu_tab_del;
+
+
+    /* 选项卡面板 */
+    private JTabbedPane jTabbedPane;
+
     /* 文件管理器组件 */
-    private MFileManager mFileManager;
+    private List<MFileManager> mFileManagers = new ArrayList<>();
 
     public Home() {
         super("Loac 文件管理器");
@@ -81,14 +89,29 @@ public class Home extends JFrame implements ActionListener, WindowListener {
         menu_file_exit = new JMenuItem("退出程序");
         menu_file_exit.addActionListener(this);
         menu_file.add(menu_file_exit);
+
+        menu_tab = new JMenu("选项卡");
+        menu_tab_add = new JMenuItem("添加选项卡");
+        menu_tab_del = new JMenuItem("删除选项卡");
+        menu_tab_add.addActionListener(this);
+        menu_tab_del.addActionListener(this);
+        menu_tab.add(menu_tab_add);
+        menu_tab.add(menu_tab_del);
+
         menuBar.add(menu_file);
+        menuBar.add(menu_tab);
 
         /* 设置菜单栏 */
         frame.setJMenuBar(menuBar);
 
-        /* 添加 MFileManager 组件到面板 */
-        mFileManager = new MFileManager();
-        frame.add(mFileManager);
+
+        mFileManagers.add(new MFileManager());
+
+        /* 初始化选项卡面板 */
+        jTabbedPane = new JTabbedPane();
+        jTabbedPane.addTab("选项卡1", mFileManagers.get(0));
+
+        frame.add(jTabbedPane);
     }
 
     /**
@@ -123,6 +146,20 @@ public class Home extends JFrame implements ActionListener, WindowListener {
         if (source == menu_file_exit) {
             /* 菜单 文件-退出程序 点击事件 */
             exitApp();
+        } else if (source == menu_tab_add) {
+            /* 菜单 选项卡-添加选项卡 点击事件 */
+            MFileManager fileManager = new MFileManager();
+            mFileManagers.add(fileManager);
+            jTabbedPane.addTab("选项卡" + mFileManagers.size(), fileManager);
+        } else if (source == menu_tab_del) {
+            /* 菜单 选项卡-删除选项卡 点击事件 */
+            int tabCount = jTabbedPane.getTabCount();
+            if (tabCount <= 1) {
+                Alert.error("只有一个选项卡无法删除");
+                return;
+            }
+            mFileManagers.remove(tabCount - 1);
+            jTabbedPane.removeTabAt(tabCount - 1);
         }
     }
 
