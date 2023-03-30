@@ -3,6 +3,7 @@ package cc.loac.component;
 import cc.loac.common.Alert;
 import cc.loac.common.Tool;
 import cc.loac.dao.MyIni;
+import cc.loac.impl.IMFileManager;
 import cc.loac.myenum.OS;
 
 import javax.swing.*;
@@ -51,6 +52,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
     private JMenuItem popupMenu_table_files_compress;
     private JMenuItem popupMenu_table_files_newFile;
     private JMenuItem popupMenu_table_files_newDir;
+    private JMenuItem popupMenu_table_files_refresh;
     private JMenuItem popupMenu_table_files_del;
     private JMenuItem popupMenu_table_files_showHidden;
     private JMenuItem popupMenu_table_files_copy;
@@ -69,10 +71,15 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
     // 当前地址在 listPath 中的索引
     private int listPath_index = 0;
 
+    /* 回调接口 */
+    private IMFileManager imFileManager;
+
     /**
      * 构造函数，初始化面板组件和数据
      */
-    public MFileManager() {
+    public MFileManager(IMFileManager imFileManager) {
+        this.imFileManager = imFileManager;
+
         // 初始化组件
         initComponent();
         // 初始化组件数据
@@ -139,6 +146,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         popupMenu_table_files_open = new JMenuItem("打开");
         popupMenu_table_files_newFile = new JMenuItem("新建文件");
         popupMenu_table_files_newDir = new JMenuItem("新建文件夹");
+        popupMenu_table_files_refresh = new JMenuItem("刷新");
         popupMenu_table_files_compress = new JMenuItem("压缩");
         popupMenu_table_files_copy = new JMenuItem("复制到");
         popupMenu_table_files_cut = new JMenuItem("剪切到");
@@ -150,6 +158,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         popupMenu_table_files_open.addActionListener(this);
         popupMenu_table_files_newFile.addActionListener(this);
         popupMenu_table_files_newDir.addActionListener(this);
+        popupMenu_table_files_refresh.addActionListener(this);
         popupMenu_table_files_compress.addActionListener(this);
         popupMenu_table_files_copy.addActionListener(this);
         popupMenu_table_files_cut.addActionListener(this);
@@ -166,6 +175,8 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         popupMenu_table_files.add(popupMenu_table_files_open);
         popupMenu_table_files.add(popupMenu_table_files_newFile);
         popupMenu_table_files.add(popupMenu_table_files_newDir);
+        popupMenu_table_files.addSeparator();
+        popupMenu_table_files.add(popupMenu_table_files_refresh);
         popupMenu_table_files.addSeparator();
         popupMenu_table_files.add(popupMenu_table_files_compress);
         popupMenu_table_files.addSeparator();
@@ -396,7 +407,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         } else {
             Alert.info("删除成功：" + files.length);
             // 刷新表格数据
-            setCurrentPath(currentPath, false);
+            refreshFiles();
         }
     }
 
@@ -412,7 +423,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             Alert.error("重命名失败");
         } else {
             // 刷新表格数据
-            setCurrentPath(currentPath, false);
+            refreshFiles();
         }
     }
 
@@ -436,7 +447,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
                 }
                 if (b) {
                     // 新建成功，刷新文件表格
-                    setCurrentPath(currentPath, false);
+                    refreshFiles();
                 } else {
                     Alert.error("新建" + (isDir ? "文件夹" : "文件") + "失败");
                 }
@@ -501,7 +512,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             } else {
                 Alert.info((isCut ? "移动" : "复制") + "成功：" + files.length);
                 // 刷新表格数据
-                setCurrentPath(currentPath, false);
+                refreshFiles();
             }
         }
     }
@@ -556,7 +567,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             myIni.setHomeTableFileShowHidden(showHiddenFile);
             updatePopMenuShowHiddenText(showHiddenFile);
             // 设置后刷新文件表格数据
-            setCurrentPath(currentPath, false);
+            refreshFiles();
 
         } else if (source == popupMenu_table_files_del) {
             /* 文件表格右键菜单项-删除文件点击事件 */
@@ -607,6 +618,9 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             File file = table_files_Data.get(selectedRow);
             openFile(file);
 
+        } else if (source == popupMenu_table_files_refresh) {
+            /* 文件表格右键菜单项-刷新点击事件 */
+            refreshFiles();
         } else if (source == button_toolBar_pre) {
             /* 工具栏-后退按钮点击事件 */
             setCurrentPath(listPath.get(--listPath_index), true);
@@ -627,12 +641,15 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
                 Tool.compressFileByZIP(file.getPath(), file.getParent() + File.separator + name);
                 Alert.info("压缩成功");
                 // 刷新表格
-                setCurrentPath(currentPath, false);
+                refreshFiles();
             } catch (Exception e) {
                 e.printStackTrace();
                 Alert.info("压缩失败，" + e.getMessage());
             }
         }
+
+        // 调用接口回调函数刷新所有 MFileManager 数据
+        imFileManager.refresh();
     }
 
 

@@ -1,28 +1,17 @@
 package cc.loac.frame;
 
 import cc.loac.common.Alert;
-import cc.loac.common.Tool;
 import cc.loac.component.MFileManager;
 import cc.loac.dao.MyIni;
-import cc.loac.myenum.OS;
-import javafx.scene.input.KeyCode;
+import cc.loac.impl.IMFileManager;
 
 import javax.swing.*;
-import javax.swing.event.ListDataEvent;
-import javax.swing.event.ListDataListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 
-public class Home extends JFrame implements ActionListener, WindowListener {
+public class Home extends JFrame implements ActionListener, WindowListener, IMFileManager {
     private final MyIni myIni = MyIni.getInstance();
     // 记录窗口默认位置
     private Point point = myIni.getHomeLocation();
@@ -105,7 +94,7 @@ public class Home extends JFrame implements ActionListener, WindowListener {
         frame.setJMenuBar(menuBar);
 
 
-        mFileManagers.add(new MFileManager());
+        mFileManagers.add(new MFileManager(this));
 
         /* 初始化选项卡面板 */
         jTabbedPane = new JTabbedPane();
@@ -148,7 +137,7 @@ public class Home extends JFrame implements ActionListener, WindowListener {
             exitApp();
         } else if (source == menu_tab_add) {
             /* 菜单 选项卡-添加选项卡 点击事件 */
-            MFileManager fileManager = new MFileManager();
+            MFileManager fileManager = new MFileManager(this);
             mFileManagers.add(fileManager);
             jTabbedPane.addTab("选项卡" + mFileManagers.size(), fileManager);
         } else if (source == menu_tab_del) {
@@ -225,5 +214,16 @@ public class Home extends JFrame implements ActionListener, WindowListener {
     @Override
     public void windowDeactivated(WindowEvent e) {
 
+    }
+
+    /**
+     * MFileManager 回调函数，刷新所有 MFileManager 的数据
+     */
+    @Override
+    public void refresh() {
+        mFileManagers.forEach(it -> {
+            // 刷新数据
+            it.refreshFiles();
+        });
     }
 }
