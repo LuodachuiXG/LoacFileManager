@@ -3,10 +3,10 @@
     <output-path>$PROJECT_DIR$/out/artifacts/FileManager_jar</output-path>
     <root id="archive" name="FileManager.jar">
       <element id="module-output" name="FileManager" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/formdev/flatlaf-intellij-themes/3.0/flatlaf-intellij-themes-3.0.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/alibaba/fastjson2/fastjson2/2.0.19/fastjson2-2.0.19.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/ini4j/ini4j/0.5.4/ini4j-0.5.4.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/formdev/flatlaf/3.0/flatlaf-3.0.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/formdev/flatlaf-intellij-themes/3.0/flatlaf-intellij-themes-3.0.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

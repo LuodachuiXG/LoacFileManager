@@ -2,6 +2,7 @@ package cc.loac.model;
 
 import cc.loac.entity.FileTableItem;
 
+import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.io.File;
 import java.util.ArrayList;
@@ -14,11 +15,11 @@ public class FileTableModel extends AbstractTableModel {
             "图标", "名称", "大小", "修改时间"
     };
 
-    FileTableModel() {
+    public FileTableModel() {
         items = new ArrayList<>();
     }
 
-    FileTableModel(File[] files) {
+    public FileTableModel(File[] files) {
         items = new ArrayList<>();
         for (File file : files) {
             FileTableItem fileTableItem = new FileTableItem();
@@ -27,8 +28,12 @@ public class FileTableModel extends AbstractTableModel {
         }
     }
 
-    FileTableModel(List<FileTableItem> list) {
+    public FileTableModel(List<FileTableItem> list) {
         items = list;
+    }
+
+    public FileTableItem getFileTableItem(int index) {
+        return items.get(index);
     }
 
     public File getFile(int index) {
@@ -57,6 +62,17 @@ public class FileTableModel extends AbstractTableModel {
             fileTableItem.setFile(file);
             items.add(fileTableItem);
         }
+        fireTableDataChanged();
+    }
+
+    public void setFiles(File[] files) {
+        items = new ArrayList<>();
+        for (File file : files) {
+            FileTableItem fileTableItem = new FileTableItem();
+            fileTableItem.setFile(file);
+            items.add(fileTableItem);
+        }
+        fireTableDataChanged();
     }
 
 
@@ -94,5 +110,14 @@ public class FileTableModel extends AbstractTableModel {
     @Override
     public String getColumnName(int column) {
         return columns[column];
+    }
+
+
+    @Override
+    public Class<?> getColumnClass(int columnIndex) {
+        if (columnIndex == 0) {
+            return ImageIcon.class;
+        }
+        return String.class;
     }
 }

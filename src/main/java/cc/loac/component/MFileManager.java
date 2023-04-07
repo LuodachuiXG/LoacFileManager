@@ -3,16 +3,23 @@ package cc.loac.component;
 import cc.loac.common.Alert;
 import cc.loac.common.Tool;
 import cc.loac.dao.MyIni;
+import cc.loac.entity.FileTableItem;
 import cc.loac.impl.IMFileManager;
+import cc.loac.model.FileTableModel;
 import cc.loac.myenum.OS;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.*;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Date;
@@ -33,17 +40,18 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
     private JTextField textField_toolBar_path;
     private JButton button_toolBar_go;
 
+
+    /* 分割面板，可以拖动大小 */
+    private JSplitPane jSplitPane;
+
     /* list_rootDir 列表 */
     private JList list_rootDir;
-    private java.util.List<String> list_rootDirData = new ArrayList<>();
+    private final List<String> list_rootDirData = new ArrayList<>();
 
 
     /* table_files 表格，展示文件夹中文件 */
     private JTable table_files;
-    // 存储当前表格实际显示的文件
-    private java.util.List<File> table_files_Data;
-    private String[] table_files_column = {"名称", "大小", "修改时间"};
-    private DefaultTableModel table_files_model;
+    private FileTableModel table_files_model;
     // table_files 滚动面板
     private JScrollPane scrollPane_jList_files;
     // table_files 右键弹出菜单
@@ -58,6 +66,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
     private JMenuItem popupMenu_table_files_copy;
     private JMenuItem popupMenu_table_files_cut;
     private JMenuItem popupMenu_table_files_rename;
+    private JMenuItem popupMenu_table_files_attribute;
 
     /* 记录当前文件位置 */
     private String currentPath;
@@ -67,12 +76,15 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
 
     // 记录当前文件夹的数组，用于前进后退
     // 设置最大长度为 10 ，将在 updatePreAndNextButtonState 方法中约束
-    private List<String> listPath = new ArrayList<>();
+    private final List<String> listPath = new ArrayList<>();
     // 当前地址在 listPath 中的索引
     private int listPath_index = 0;
 
     /* 回调接口 */
-    private IMFileManager imFileManager;
+    private final IMFileManager imFileManager;
+
+    /* 记录文件表格的列宽度是否已经设置 */
+    private boolean isFileTableColumnSet = false;
 
     /**
      * 构造函数，初始化面板组件和数据
@@ -92,9 +104,10 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
      */
     private void initComponent() {
         /* 设置默认为 BorderLayout 布局以事件 */
-        this.setLayout(new BorderLayout());
+        this.setLayout(new BorderLayout(5, 5));
         // 设置主面板组件事件
         this.addComponentListener(this);
+
 
         /* 设置 ToolBar 面板 */
         panel_toolBar = new JPanel(new GridBagLayout());
@@ -124,19 +137,14 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
 
 
         /* 初始化位于 center 用于展示文件夹和文件的 Table */
-        table_files = new JTable(table_files_model) {
+        table_files = new JTable() {
             // 禁止表格编辑
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
-        table_files_model = new DefaultTableModel();
-        // 设置 Table 的列名
-        for (String columnName : table_files_column) {
-            table_files_model.addColumn(columnName);
-        }
-        table_files.setModel(table_files_model);
+        table_files.setAutoCreateRowSorter(true);
         table_files.addMouseListener(this);
         // 将 Table 加入滚动面板
         scrollPane_jList_files = new JScrollPane(table_files);
@@ -153,6 +161,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         popupMenu_table_files_del = new JMenuItem("删除文件");
         popupMenu_table_files_rename = new JMenuItem("重命名");
         popupMenu_table_files_showHidden = new JMenuItem("显示隐藏文件");
+        popupMenu_table_files_attribute = new JMenuItem("属性");
 
         // 添加菜单项点击事件
         popupMenu_table_files_open.addActionListener(this);
@@ -165,6 +174,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         popupMenu_table_files_del.addActionListener(this);
         popupMenu_table_files_rename.addActionListener(this);
         popupMenu_table_files_showHidden.addActionListener(this);
+        popupMenu_table_files_attribute.addActionListener(this);
 
         // 根据配置文件获取当前 “显示隐藏文件” 按钮要显示的文字
         showHiddenFile = myIni.getHomeTableFileShowHidden();
@@ -186,10 +196,19 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         popupMenu_table_files.add(popupMenu_table_files_del);
         popupMenu_table_files.add(popupMenu_table_files_rename);
         popupMenu_table_files.add(popupMenu_table_files_showHidden);
+        popupMenu_table_files.addSeparator();
+        popupMenu_table_files.add(popupMenu_table_files_attribute);
 
+
+
+        /* 将根目录显示列表和文件表格放入分割面板中 */
+        jSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, list_rootDir, scrollPane_jList_files);
+        jSplitPane.addPropertyChangeListener(evt -> {
+            // 分割面板拖动大小改变后刷新文件表格列宽
+            updateComponentSize();
+        });
         /* 添加组件到主面板 */
-        this.add(list_rootDir, BorderLayout.WEST);
-        this.add(scrollPane_jList_files, BorderLayout.CENTER);
+        this.add(jSplitPane, BorderLayout.CENTER);
         this.add(panel_toolBar, BorderLayout.NORTH);
     }
 
@@ -258,7 +277,12 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
      * 根据主面板 panel_borderLayout 大小设置组件大小
      */
     private void updateComponentSize() {
-        Dimension dimension = this.getSize();
+        // 根据窗口大小改变事件设置文件表格列宽
+        Dimension dimension = table_files.getSize();
+        setColumnWidth(0, -1);
+        setColumnWidth(1, (int) (dimension.getWidth() * 0.5));
+        setColumnWidth(2, (int) (dimension.getWidth() * 0.3));
+        setColumnWidth(3, (int) (dimension.getWidth() * 0.2));
     }
 
 
@@ -280,37 +304,29 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             }
 
             File[] files = pathFile.listFiles();
+            files = (files == null ? new File[0] : files);
 
-            // 先清空 table_files_model
-            table_files_model.setRowCount(0);
-            // 清空 table_files_Data
-            table_files_Data = new ArrayList<>();
-            // 将当前根目录下的文件添加到 JList_filesData 列表
-            for (int i = 0; i < files.length; i++) {
-                File file = files[i];
-
+            List<File> tableItems = new ArrayList<>();
+            for (File file : files) {
                 // 判断是否设置了允许显示隐藏文件
                 if (file.isHidden() && !showHiddenFile) {
                     continue;
                 }
+                tableItems.add(file);
+            }
 
-                String[] rowData = new String[3];
-                // 第一列是文件名
-                rowData[0] = file.getName();
-                // 第二列是文件大小或文件夹子项目数
-                if (file.isDirectory()) {
-                    // 如果是文件夹就显示文件夹下项目数量
-                    File[] fs = file.listFiles();
-                    rowData[1] = fs == null ? "0 个项目" : fs.length + " 个项目";
-                } else {
-                    rowData[1] = Tool.formatSize(file.length());
-                }
-                // 第三列是修改时间
-                rowData[2] = Tool.formatDate(new Date(file.lastModified()));
-                // 将行数据添加到 table
-                table_files_model.addRow(rowData);
-                // 将当前文件添加到
-                table_files_Data.add(file);
+
+            if (table_files_model == null) {
+                table_files_model = new FileTableModel();
+                table_files_model.setFiles(tableItems);
+                table_files.setModel(table_files_model);
+            } else {
+                table_files_model.setFiles(tableItems);
+            }
+            if (!isFileTableColumnSet) {
+                // 第一次刷新文件时设置一下列宽
+                updateComponentSize();
+                isFileTableColumnSet = true;
             }
 
             // 设置当前目录地址到全局变量
@@ -332,6 +348,23 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             System.out.println(e.getMessage());
             Alert.error("打开文件夹失败，可能当前文件夹有权限无法访问");
         }
+    }
+
+
+    private void setColumnWidth(int column, int width) {
+        // 防止列还没初始化就 getColumn 抛出异常
+        if (table_files.getColumnModel().getColumnCount() == 0) {
+            return;
+        }
+        TableColumn tableColumn = table_files.getColumnModel().getColumn(column);
+        if (width < 0) {
+            JLabel label = new JLabel((String) tableColumn.getHeaderValue());
+            Dimension preferred = label.getPreferredSize();
+            width = (int) preferred.getWidth() + 14;
+        }
+        tableColumn.setPreferredWidth(width);
+        tableColumn.setMaxWidth(width);
+        tableColumn.setMinWidth(width);
     }
 
     /**
@@ -577,7 +610,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
                 // 将行中选择的索引转为 File 列表
                 File[] files = new File[selectedRows.length];
                 for (int i = 0; i < selectedRows.length; i++) {
-                    files[i] = table_files_Data.get(selectedRows[i]);
+                    files[i] = table_files_model.getFile(selectedRows[i]);
                 }
                 // 删除文件
                 deleteFiles(files);
@@ -586,7 +619,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         } else if (source == popupMenu_table_files_rename) {
             /* 文件表格右键菜单项-重命名点击事件 */
             int selectedRow = table_files.getSelectedRow();
-            File file = table_files_Data.get(selectedRow);
+            File file = table_files_model.getFile(selectedRow);
             String name = Alert.inputWithValue("输入新文件名：", file.getName());
             if (name == null || name.length() == 0) {
                 return;
@@ -607,7 +640,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             int[] selectedRows = table_files.getSelectedRows();
             File[] files = new File[selectedRows.length];
             for (int i = 0; i < selectedRows.length; i++) {
-                files[i] = table_files_Data.get(selectedRows[i]);
+                files[i] = table_files_model.getFile(selectedRows[i]);
             }
             // 复制/剪切文件
             copyOrCut(files, source != popupMenu_table_files_copy);
@@ -615,7 +648,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         } else if (source == popupMenu_table_files_open) {
             /* 文件表格右键菜单项-打开点击事件 */
             int selectedRow = table_files.getSelectedRow();
-            File file = table_files_Data.get(selectedRow);
+            File file = table_files_model.getFile(selectedRow);
             openFile(file);
 
         } else if (source == popupMenu_table_files_refresh) {
@@ -633,7 +666,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             /* 工具栏-压缩按钮点击事件 */
             try {
                 int selectedRow = table_files.getSelectedRow();
-                File file = table_files_Data.get(selectedRow);
+                File file = table_files_model.getFile(selectedRow);
                 String name = Alert.input("请输入压缩包文件名：");
                 if (name == null || name.length() == 0) {
                     return;
@@ -646,10 +679,33 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
                 e.printStackTrace();
                 Alert.info("压缩失败，" + e.getMessage());
             }
+        } else if (source == popupMenu_table_files_attribute) {
+            /* 工具栏-属性按钮点击事件 */
+            int selectRow = table_files.getSelectedRow();
+            // 显示文件属性
+            showFileAttribute(table_files_model.getFileTableItem(selectRow));
         }
 
         // 调用接口回调函数刷新所有 MFileManager 数据
         imFileManager.refresh();
+    }
+
+    /**
+     * 消息框显示文件属性
+     * @param fileTableItem FileTableItem 对象
+     */
+    private void showFileAttribute(FileTableItem fileTableItem) {
+        File file = fileTableItem.getFile();
+        String str = "文件名：" + file.getName() +
+                "\n绝对路径：" + file.getAbsolutePath() +
+                "\n文件大小：" + fileTableItem.getSize() +
+                "\n最后修改：" + fileTableItem.getLastModifyDate() +
+                "\n目录：" + (file.isDirectory() ? "是" : "否") +
+                "\n隐藏：" + (file.isHidden() ? "是" : "否") +
+                "\n可读：" + (file.canRead() ? "是" : "否") +
+                "\n可写：" + (file.canWrite() ? "是" : "否") +
+                "\n可执行：" + (file.canExecute() ? "是" : "否");
+        Alert.info(str, file.getName());
     }
 
 
@@ -832,7 +888,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
                 /* table_files 文件表格左键双击事件 */
                 // 打开文件/文件夹
                 int selectedRow = table_files.getSelectedRow();
-                File file = table_files_Data.get(selectedRow);
+                File file = table_files_model.getFile(selectedRow);
                 openFile(file);
             }
         }
