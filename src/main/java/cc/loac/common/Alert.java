@@ -29,11 +29,7 @@ public class Alert {
 
     public static boolean confirm(String msg, String title) {
         int result = JOptionPane.showConfirmDialog(null, msg, title, JOptionPane.YES_NO_OPTION);
-        if (result == JOptionPane.YES_OPTION) {
-            return true;
-        } else {
-            return false;
-        }
+        return result == JOptionPane.YES_OPTION;
     }
 
     public static String inputWithValue(String msg, String value) {

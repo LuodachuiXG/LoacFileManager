@@ -520,7 +520,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
     /**
      * 打开文件/文件夹
      * 如果是文件夹就跳转，是文件就打开
-     * @param file
+     * @param file 要打开的文件
      */
     private void openFile(File file) {
         if (file.isDirectory()) {
