@@ -648,7 +648,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         } else if (source == popupMenu_table_files_open) {
             /* 文件表格右键菜单项-打开点击事件 */
             int selectedRow = table_files.getSelectedRow();
-            File file = table_files_model.getFile(selectedRow);
+            File file = table_files_model.getFile(table_files.getValueAt(selectedRow, 1).toString());
             openFile(file);
 
         } else if (source == popupMenu_table_files_refresh) {
@@ -888,7 +888,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
                 /* table_files 文件表格左键双击事件 */
                 // 打开文件/文件夹
                 int selectedRow = table_files.getSelectedRow();
-                File file = table_files_model.getFile(selectedRow);
+                File file = table_files_model.getFile(table_files.getValueAt(selectedRow, 1).toString());
                 openFile(file);
             }
         }
