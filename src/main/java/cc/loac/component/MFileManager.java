@@ -610,7 +610,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
                 // 将行中选择的索引转为 File 列表
                 File[] files = new File[selectedRows.length];
                 for (int i = 0; i < selectedRows.length; i++) {
-                    files[i] = table_files_model.getFile(selectedRows[i]);
+                    files[i] = table_files_model.getFile(table_files.getValueAt(selectedRows[i], 1).toString());
                 }
                 // 删除文件
                 deleteFiles(files);
@@ -619,7 +619,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         } else if (source == popupMenu_table_files_rename) {
             /* 文件表格右键菜单项-重命名点击事件 */
             int selectedRow = table_files.getSelectedRow();
-            File file = table_files_model.getFile(selectedRow);
+            File file = table_files_model.getFile(table_files.getValueAt(selectedRow, 1).toString());
             String name = Alert.inputWithValue("输入新文件名：", file.getName());
             if (name == null || name.length() == 0) {
                 return;
@@ -639,8 +639,9 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             // 将行中选择的索引转为 File 列表
             int[] selectedRows = table_files.getSelectedRows();
             File[] files = new File[selectedRows.length];
+
             for (int i = 0; i < selectedRows.length; i++) {
-                files[i] = table_files_model.getFile(selectedRows[i]);
+                files[i] = table_files_model.getFile(table_files.getValueAt(selectedRows[i], 1).toString());
             }
             // 复制/剪切文件
             copyOrCut(files, source != popupMenu_table_files_copy);
@@ -666,7 +667,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
             /* 工具栏-压缩按钮点击事件 */
             try {
                 int selectedRow = table_files.getSelectedRow();
-                File file = table_files_model.getFile(selectedRow);
+                File file = table_files_model.getFile(table_files.getValueAt(selectedRow, 1).toString());
                 String name = Alert.input("请输入压缩包文件名：");
                 if (name == null || name.length() == 0) {
                     return;
