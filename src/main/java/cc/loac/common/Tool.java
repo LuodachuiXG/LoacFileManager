@@ -6,10 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.*;
 import java.util.zip.Adler32;
 import java.util.zip.CheckedOutputStream;
 import java.util.zip.ZipEntry;
@@ -78,19 +75,21 @@ public class Tool {
 
     /**
      * 压缩zip
-     * @param filePath 要压缩的文件
+     * @param filePaths 要压缩的文件
      * @param outPath 输出地址
      * @return 输出地址
      * @throws Exception
      */
-    public static String compressFileByZIP(String filePath, String outPath) throws Exception {
-        File file = new File(filePath);
+    public static String compressFileByZIP(String[] filePaths, String outPath) throws Exception {
         String outPutFileName = outPath + ".zip";
         ArrayList<File> fileList = new ArrayList<>();
-        if (file.isDirectory()) {
-            fileList.addAll(Arrays.asList(file.listFiles()));
-        } else {
-            fileList.add(file);
+        for (String path : filePaths) {
+            File file = new File(path);
+            if (file.isDirectory()) {
+                fileList.addAll(List.of(file.listFiles()));
+            } else {
+                fileList.add(file);
+            }
         }
         FileInputStream fileInputStream = null;
         CheckedOutputStream checkedOutputStream = new CheckedOutputStream(new FileOutputStream(outPutFileName), new Adler32());

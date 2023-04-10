@@ -456,7 +456,6 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
             errorFiles.forEach(file -> msg.append(file.getPath()));
             Alert.error(msg.toString());
         } else {
-            Alert.info("删除成功：" + files.length);
             // 刷新表格数据
             refreshFiles();
         }
@@ -680,13 +679,26 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
         } else if (source == popupMenu_table_files_compress) {
             /* 文件表格右键菜单项-压缩按钮点击事件 */
             try {
-                int selectedRow = table_files.getSelectedRow();
-                File file = table_files_model.getFile(table_files.getValueAt(selectedRow, 1).toString());
+                int[] selectedRows = table_files.getSelectedRows();
+                File[] files = new File[selectedRows.length];
+                String[] filePaths = new String[selectedRows.length];
+                for (int i = 0; i < filePaths.length; i++) {
+                    // 将当前选中的 File 文件加入 files
+                    files[i] = table_files_model.getFile(table_files.getValueAt(selectedRows[i], 1).toString());
+                    filePaths[i] = files[i].getPath();
+                }
+
+                for (String path: filePaths) {
+                    System.out.println(path);
+                }
+
                 String name = Alert.input("请输入压缩包文件名：");
                 if (name == null || name.length() == 0) {
                     return;
                 }
-                Tool.compressFileByZIP(file.getPath(), file.getParent() + File.separator + name);
+
+                // 压缩文件，输出目录就取同级第一个文件路径
+                Tool.compressFileByZIP(filePaths, files[0].getParent() + File.separator + name);
                 Alert.info("压缩成功");
                 // 刷新表格
                 refreshFiles();
@@ -699,8 +711,9 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
         } else if (source == popupMenu_table_files_attribute) {
             /* 文件表格右键菜单项-属性按钮点击事件 */
             int selectRow = table_files.getSelectedRow();
+            String fileName = (String) table_files.getValueAt(selectRow, 1);
             // 显示文件属性
-            showFileAttribute(table_files_model.getFileTableItem(selectRow));
+            showFileAttribute(table_files_model.getFileTableItem(fileName));
         } else if (source == popupMenu_table_files_addTab) {
             /* 文件表格右键菜单项-添加选项卡点击事件 */
             imFileManager.onAddTab();

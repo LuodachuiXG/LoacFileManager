@@ -36,6 +36,16 @@ public class FileTableModel extends AbstractTableModel {
         return items.get(index);
     }
 
+    public FileTableItem getFileTableItem(String name) {
+        for (FileTableItem fileTableItem : items) {
+            File file = fileTableItem.getFile();
+            if (file.getName().equals(name)) {
+                return fileTableItem;
+            }
+        }
+        return null;
+    }
+
     public File getFile(int index) {
         return items.get(index).getFile();
     }
