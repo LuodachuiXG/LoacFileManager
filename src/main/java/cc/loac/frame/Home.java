@@ -94,7 +94,7 @@ public class Home extends JFrame implements ActionListener, WindowListener, IMFi
         frame.setJMenuBar(menuBar);
 
 
-        mFileManagers.add(new MFileManager(this));
+        mFileManagers.add(new MFileManager(this, 0));
 
         /* 初始化选项卡面板 */
         jTabbedPane = new JTabbedPane();
@@ -137,18 +137,62 @@ public class Home extends JFrame implements ActionListener, WindowListener, IMFi
             exitApp();
         } else if (source == menu_tab_add) {
             /* 菜单 选项卡-添加选项卡 点击事件 */
-            MFileManager fileManager = new MFileManager(this);
-            mFileManagers.add(fileManager);
-            jTabbedPane.addTab("选项卡" + mFileManagers.size(), fileManager);
+            addTab();
         } else if (source == menu_tab_del) {
             /* 菜单 选项卡-删除选项卡 点击事件 */
-            int tabCount = jTabbedPane.getTabCount();
-            if (tabCount <= 1) {
-                Alert.error("只有一个选项卡无法删除");
-                return;
-            }
+            delTab(-1);
+        }
+    }
+
+
+    /**
+     * 添加选项卡
+     */
+    private void addTab() {
+        MFileManager fileManager = new MFileManager(this, mFileManagers.size());
+        mFileManagers.add(fileManager);
+        jTabbedPane.addTab("选项卡" + mFileManagers.size(), fileManager);
+    }
+
+    /**
+     * 删除选项卡
+     * @param tabIndex 如果给定，就删除指定的 fileManager
+     */
+    private void delTab(int tabIndex) {
+        int tabCount = jTabbedPane.getTabCount();
+        if (tabCount <= 1) {
+            Alert.error("只有一个选项卡无法删除");
+            return;
+        }
+
+        // fileManager 不为空就删除给定的 fileManager
+        if (tabIndex != -1) {
+            mFileManagers.remove(tabIndex);
+            jTabbedPane.removeTabAt(tabIndex);
+        } else {
             mFileManagers.remove(tabCount - 1);
             jTabbedPane.removeTabAt(tabCount - 1);
+        }
+        // 重新设置 mFileManagers 中每个 MFileManager 中的 tabIndex
+        refreshMFileManagerTabIndex();
+    }
+
+    /**
+     * 重命名选项卡
+     * @param name 选项卡名
+     * @param tabIndex 选项卡索引
+     */
+    private void renameTab(String name, int tabIndex) {
+        jTabbedPane.setTitleAt(tabIndex, name);
+    }
+
+    /**
+     * 重新设置 mFileManagers 中每个 MFileManager 中的 tabIndex
+     * 因为删除了选项卡后索引可能会变动
+     */
+    private void refreshMFileManagerTabIndex() {
+        for (int i = 0; i < mFileManagers.size(); i++) {
+            mFileManagers.get(i).setTabIndex(i);
         }
     }
 
@@ -220,10 +264,35 @@ public class Home extends JFrame implements ActionListener, WindowListener, IMFi
      * MFileManager 回调函数，刷新所有 MFileManager 的数据
      */
     @Override
-    public void refresh() {
-        mFileManagers.forEach(it -> {
-            // 刷新数据
-            it.refreshFiles();
-        });
+    public void onRefresh() {
+        // 刷新数据
+        mFileManagers.forEach(MFileManager::refreshFiles);
+    }
+
+    /**
+     * MFileManager 回调函数，添加选项卡
+     */
+    @Override
+    public void onAddTab() {
+        addTab();
+    }
+
+    /**
+     * 删除选项卡
+     * @param tabIndex 删除的选项卡索引
+     */
+    @Override
+    public void onDelTab(int tabIndex) {
+        delTab(tabIndex);
+    }
+
+    /**
+     * 重命名选项卡
+     * @param name 要设置的新的 Tab 名
+     * @param tabIndex 选项卡索引
+     */
+    @Override
+    public void onTabRename(String name, int tabIndex) {
+        renameTab(name, tabIndex);
     }
 }

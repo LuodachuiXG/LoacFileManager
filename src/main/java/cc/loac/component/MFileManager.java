@@ -82,11 +82,15 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
     /* 记录文件表格的列宽度是否已经设置 */
     private boolean isFileTableColumnSet = false;
 
+    /* 记录当前 MFileManager 在 Home 的选项卡中的索引位置 */
+    private int tabIndex = -1;
+
     /**
      * 构造函数，初始化面板组件和数据
      */
-    public MFileManager(IMFileManager imFileManager) {
+    public MFileManager(IMFileManager imFileManager, int tabIndex) {
         this.imFileManager = imFileManager;
+        this.tabIndex = tabIndex;
 
         // 初始化组件
         initComponent();
@@ -238,6 +242,14 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
         list_rootDir.setListData(list_rootDirData.toArray());
     }
 
+    /**
+     * 在 Home 中删除选项卡后重新设置当前 MFileManager 的选项卡索引
+     * @param tabIndex 选项卡索引
+     */
+    public void setTabIndex(int tabIndex) {
+        this.tabIndex = tabIndex;
+    }
+
 
     /**
      * 刷新文件列表文件数据
@@ -291,7 +303,7 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
 
     /**
      * 设置当前路径
-     * @param path
+     * @param path 路径
      * @param isNotAddList 不将当前路径加入 listPath 集合中（如果已经是前进后退操作，这里设 true）
      */
     private void setCurrentPath(String path, boolean isNotAddList) {
@@ -347,8 +359,11 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
             // 设置前进后退按钮状态
             updatePreAndNextButtonState();
 
+            // 刷新 Home 中选项卡名称
+            imFileManager.onTabRename(path, tabIndex);
+
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            e.printStackTrace();
             Alert.error("打开文件夹失败，可能当前文件夹有权限无法访问");
         }
     }
@@ -590,6 +605,8 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
             updatePopMenuShowHiddenText(showHiddenFile);
             // 设置后刷新文件表格数据
             refreshFiles();
+            // 调用接口回调函数刷新所有 MFileManager 数据
+            imFileManager.onRefresh();
 
         } else if (source == popupMenu_table_files_del) {
             /* 文件表格右键菜单项-删除文件点击事件 */
@@ -603,6 +620,8 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
                 }
                 // 删除文件
                 deleteFiles(files);
+                // 调用接口回调函数刷新所有 MFileManager 数据
+                imFileManager.onRefresh();
             }
 
         } else if (source == popupMenu_table_files_rename) {
@@ -614,6 +633,8 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
                 return;
             }
             renameFile(file, name);
+            // 调用接口回调函数刷新所有 MFileManager 数据
+            imFileManager.onRefresh();
 
         } else if (source == popupMenu_table_files_newFile || source == popupMenu_table_files_newDir) {
             /* 文件表格右键菜单项-新建文件/新建文件夹点击事件 */
@@ -622,6 +643,8 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
                 return;
             }
             createFile(currentPath + File.separator + name, source == popupMenu_table_files_newDir);
+            // 调用接口回调函数刷新所有 MFileManager 数据
+            imFileManager.onRefresh();
 
         } else if (source == popupMenu_table_files_copy || source == popupMenu_table_files_cut) {
             /* 文件表格右键菜单项-复制到/剪切到点击事件 */
@@ -634,6 +657,8 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
             }
             // 复制/剪切文件
             copyOrCut(files, source != popupMenu_table_files_copy);
+            // 调用接口回调函数刷新所有 MFileManager 数据
+            imFileManager.onRefresh();
 
         } else if (source == popupMenu_table_files_open) {
             /* 文件表格右键菜单项-打开点击事件 */
@@ -653,7 +678,7 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
             setCurrentPath(listPath.get(++listPath_index), true);
 
         } else if (source == popupMenu_table_files_compress) {
-            /* 工具栏-压缩按钮点击事件 */
+            /* 文件表格右键菜单项-压缩按钮点击事件 */
             try {
                 int selectedRow = table_files.getSelectedRow();
                 File file = table_files_model.getFile(table_files.getValueAt(selectedRow, 1).toString());
@@ -665,19 +690,24 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
                 Alert.info("压缩成功");
                 // 刷新表格
                 refreshFiles();
+                // 调用接口回调函数刷新所有 MFileManager 数据
+                imFileManager.onRefresh();
             } catch (Exception e) {
                 e.printStackTrace();
                 Alert.info("压缩失败，" + e.getMessage());
             }
         } else if (source == popupMenu_table_files_attribute) {
-            /* 工具栏-属性按钮点击事件 */
+            /* 文件表格右键菜单项-属性按钮点击事件 */
             int selectRow = table_files.getSelectedRow();
             // 显示文件属性
             showFileAttribute(table_files_model.getFileTableItem(selectRow));
+        } else if (source == popupMenu_table_files_addTab) {
+            /* 文件表格右键菜单项-添加选项卡点击事件 */
+            imFileManager.onAddTab();
+        } else if (source == popupMenu_table_files_delTab) {
+            /* 文件表格右键菜单项-删除选项卡点击事件 */
+            imFileManager.onDelTab(tabIndex);
         }
-
-        // 调用接口回调函数刷新所有 MFileManager 数据
-        imFileManager.refresh();
     }
 
     /**
