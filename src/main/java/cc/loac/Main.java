@@ -34,6 +34,7 @@ public class Main {
         // 设置主题
         setTheme();
 
+        // 初始化
         init();
         new Home();
     }

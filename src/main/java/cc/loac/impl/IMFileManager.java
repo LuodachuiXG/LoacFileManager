@@ -1,7 +1,5 @@
 package cc.loac.impl;
 
-import cc.loac.component.MFileManager;
-
 /**
  * 回调接口
  */

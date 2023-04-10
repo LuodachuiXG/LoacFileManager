@@ -13,12 +13,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class Tool {
-    // 获取 OS.NAME
+    // 获取系统平台
     private static final String OS_NAME = System.getProperty("os.name").toUpperCase();
 
     /**
-     * 获取 OS.NAME
-     *
+     * 获取系统平台
      * @return OS
      */
     public static OS getOSName() {
@@ -34,8 +33,8 @@ public class Tool {
     /**
      * 格式化文件大小文字
      * 例如将 2048 格式化为 2KB
-     * @param length
-     * @return
+     * @param length 文件字节大小
+     * @return 格式化后的文本
      */
     public static String formatSize(double length) {
         double size = length / 1024;
@@ -53,8 +52,8 @@ public class Tool {
 
     /**
      * 格式化日期
-     * @param date
-     * @return
+     * @param date Date 对象
+     * @return 格式化后的日期文本
      */
     public static String formatDate(Date date) {
         SimpleDateFormat sdf;
@@ -78,7 +77,7 @@ public class Tool {
      * @param filePaths 要压缩的文件
      * @param outPath 输出地址
      * @return 输出地址
-     * @throws Exception
+     * @throws Exception E
      */
     public static String compressFileByZIP(String[] filePaths, String outPath) throws Exception {
         String outPutFileName = outPath + ".zip";

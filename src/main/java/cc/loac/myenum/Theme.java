@@ -1,5 +1,8 @@
 package cc.loac.myenum;
 
+/**
+ * 主题类型枚举
+ */
 public enum Theme {
     FlatLafLight(0),
     FlatLafDark(1),
@@ -9,6 +12,7 @@ public enum Theme {
     FlatLafMacOSDark(5),
     NONE(-1);
 
+    // 标记当前枚举
     private int index;
 
     Theme(int i) {
