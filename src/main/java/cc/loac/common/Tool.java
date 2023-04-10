@@ -2,9 +2,6 @@ package cc.loac.common;
 
 
 import cc.loac.myenum.OS;
-
-import javax.swing.*;
-import javax.xml.crypto.Data;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -40,7 +37,6 @@ public class Tool {
     /**
      * 格式化文件大小文字
      * 例如将 2048 格式化为 2KB
-     *
      * @param length
      * @return
      */
@@ -60,7 +56,6 @@ public class Tool {
 
     /**
      * 格式化日期
-     *
      * @param date
      * @return
      */

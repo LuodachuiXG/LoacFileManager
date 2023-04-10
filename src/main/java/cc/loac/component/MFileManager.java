@@ -11,25 +11,19 @@ import cc.loac.myenum.OS;
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.filechooser.FileSystemView;
-import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.*;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
  * 文件管理器组件
  */
-public class MFileManager extends JPanel implements ActionListener, WindowListener,
-        ComponentListener, ListSelectionListener, KeyListener, MouseListener {
+public class MFileManager extends JPanel implements ActionListener, ComponentListener,
+        ListSelectionListener, KeyListener, MouseListener {
 
     private final MyIni myIni = MyIni.getInstance();
 
@@ -66,6 +60,8 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
     private JMenuItem popupMenu_table_files_copy;
     private JMenuItem popupMenu_table_files_cut;
     private JMenuItem popupMenu_table_files_rename;
+    private JMenuItem popupMenu_table_files_addTab;
+    private JMenuItem popupMenu_table_files_delTab;
     private JMenuItem popupMenu_table_files_attribute;
 
     /* 记录当前文件位置 */
@@ -104,7 +100,7 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
      */
     private void initComponent() {
         /* 设置默认为 BorderLayout 布局以事件 */
-        this.setLayout(new BorderLayout(5, 5));
+        this.setLayout(new BorderLayout());
         // 设置主面板组件事件
         this.addComponentListener(this);
 
@@ -161,9 +157,11 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         popupMenu_table_files_del = new JMenuItem("删除文件");
         popupMenu_table_files_rename = new JMenuItem("重命名");
         popupMenu_table_files_showHidden = new JMenuItem("显示隐藏文件");
+        popupMenu_table_files_addTab = new JMenuItem("添加选项卡");
+        popupMenu_table_files_delTab = new JMenuItem("删除当前选项卡");
         popupMenu_table_files_attribute = new JMenuItem("属性");
 
-        // 添加菜单项点击事件
+        // 添加菜单点击事件
         popupMenu_table_files_open.addActionListener(this);
         popupMenu_table_files_newFile.addActionListener(this);
         popupMenu_table_files_newDir.addActionListener(this);
@@ -174,6 +172,8 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         popupMenu_table_files_del.addActionListener(this);
         popupMenu_table_files_rename.addActionListener(this);
         popupMenu_table_files_showHidden.addActionListener(this);
+        popupMenu_table_files_addTab.addActionListener(this);
+        popupMenu_table_files_delTab.addActionListener(this);
         popupMenu_table_files_attribute.addActionListener(this);
 
         // 根据配置文件获取当前 “显示隐藏文件” 按钮要显示的文字
@@ -196,6 +196,9 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         popupMenu_table_files.add(popupMenu_table_files_del);
         popupMenu_table_files.add(popupMenu_table_files_rename);
         popupMenu_table_files.add(popupMenu_table_files_showHidden);
+        popupMenu_table_files.addSeparator();
+        popupMenu_table_files.add(popupMenu_table_files_addTab);
+        popupMenu_table_files.add(popupMenu_table_files_delTab);
         popupMenu_table_files.addSeparator();
         popupMenu_table_files.add(popupMenu_table_files_attribute);
 
@@ -568,20 +571,6 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
         }
     }
 
-    /**
-     * 保存数据并退出程序
-     */
-    private void exitApp() {
-        // 在程序关闭时记录窗口大小和位置
-        Dimension ds = this.getSize();
-        Point pt = this.getLocation();
-        myIni.setHomeLocation((int) pt.getX(), (int) pt.getY());
-        myIni.setHomeSize((int) ds.getWidth(), (int) ds.getHeight());
-        System.exit(0);
-    }
-
-
-
 
     /**
      * 按钮点击事件
@@ -707,71 +696,6 @@ public class MFileManager extends JPanel implements ActionListener, WindowListen
                 "\n可写：" + (file.canWrite() ? "是" : "否") +
                 "\n可执行：" + (file.canExecute() ? "是" : "否");
         Alert.info(str, file.getName());
-    }
-
-
-    /**
-     * 窗口打开事件
-     * @param e the event to be processed
-     */
-    @Override
-    public void windowOpened(WindowEvent e) {
-
-    }
-
-    /**
-     * 窗口关闭按钮点击事件
-     * @param windowEvent the event to be processed
-     */
-    @Override
-    public void windowClosing(WindowEvent windowEvent) {
-        exitApp();
-    }
-
-    /**
-     * 窗口完全关闭事件
-     * @param e the event to be processed
-     */
-    @Override
-    public void windowClosed(WindowEvent e) {
-
-    }
-
-    /**
-     * 窗口最小化事件
-     * @param e the event to be processed
-     */
-    @Override
-    public void windowIconified(WindowEvent e) {
-
-    }
-
-
-    /**
-     * 窗口最小化还原事件
-     * @param e the event to be processed
-     */
-    @Override
-    public void windowDeiconified(WindowEvent e) {
-
-    }
-
-    /**
-     * 窗口完全激活事件
-     * @param e the event to be processed
-     */
-    @Override
-    public void windowActivated(WindowEvent e) {
-
-    }
-
-    /**
-     * 窗口失去活性事件
-     * @param e the event to be processed
-     */
-    @Override
-    public void windowDeactivated(WindowEvent e) {
-
     }
 
     /**

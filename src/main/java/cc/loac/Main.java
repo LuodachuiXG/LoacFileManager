@@ -3,11 +3,8 @@ package cc.loac;
 import cc.loac.common.Tool;
 import cc.loac.frame.Home;
 import cc.loac.myenum.OS;
-import com.formdev.flatlaf.intellijthemes.FlatArcIJTheme;
-import org.ini4j.Wini;
-
+import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import java.io.File;
-import java.util.Random;
 
 
 public class Main {
@@ -25,7 +22,7 @@ public class Main {
 
     public static void main(String[] args) {
         // 设置主题
-        FlatArcIJTheme.setup();
+        FlatMacLightLaf.setup();
         init();
         new Home();
     }
