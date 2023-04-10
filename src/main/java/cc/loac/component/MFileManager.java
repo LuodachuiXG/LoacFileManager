@@ -261,14 +261,14 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
 
     /**
      * 向指定 GridBagLayout 添加组件
-     * @param container
-     * @param component
-     * @param gridX
-     * @param gridY
-     * @param gridWidth
-     * @param gridHeight
-     * @param anchor
-     * @param fill
+     * @param container 容器
+     * @param component 组件
+     * @param gridX 网格 X
+     * @param gridY 网格 Y
+     * @param gridWidth 网格宽度
+     * @param gridHeight 网格高度
+     * @param anchor 锚
+     * @param fill 填充
      */
     private void addComponent(Container container, Component component, int gridX, int gridY, int gridWidth, int gridHeight, double weightX, double weightY, int anchor, int fill ) {
         Insets insets = new Insets(0, 0, 0, 0);

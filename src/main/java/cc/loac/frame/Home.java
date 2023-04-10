@@ -28,6 +28,9 @@ public class Home extends JFrame implements ActionListener, WindowListener, IMFi
     private JMenuItem menu_tab_add;
     private JMenuItem menu_tab_del;
 
+    private JMenu menu_theme;
+    private JMenuItem menu_theme_update;
+
 
     /* 选项卡面板 */
     private JTabbedPane jTabbedPane;
@@ -87,8 +90,15 @@ public class Home extends JFrame implements ActionListener, WindowListener, IMFi
         menu_tab.add(menu_tab_add);
         menu_tab.add(menu_tab_del);
 
+        menu_theme = new JMenu("主题");
+        menu_theme_update = new JMenuItem("切换主题");
+        menu_theme_update.addActionListener(this);
+        menu_theme.add(menu_theme_update);
+
+
         menuBar.add(menu_file);
         menuBar.add(menu_tab);
+        menuBar.add(menu_theme);
 
         /* 设置菜单栏 */
         frame.setJMenuBar(menuBar);
@@ -141,6 +151,9 @@ public class Home extends JFrame implements ActionListener, WindowListener, IMFi
         } else if (source == menu_tab_del) {
             /* 菜单 选项卡-删除选项卡 点击事件 */
             delTab(-1);
+        } else if (source == menu_theme_update) {
+            /* 菜单 主题-切换主题 点击事件 */
+            new SwitchTheme();
         }
     }
 

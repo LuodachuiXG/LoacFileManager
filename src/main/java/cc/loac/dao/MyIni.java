@@ -1,6 +1,7 @@
 package cc.loac.dao;
 
 import cc.loac.Main;
+import cc.loac.myenum.Theme;
 import org.ini4j.Wini;
 
 import java.awt.*;
@@ -22,6 +23,9 @@ public class MyIni {
     private static final String OPTION_SIZE_WIDTH = "size_width";
     private static final String OPTION_SIZE_HEIGHT = "size_height";
     private static final String OPTION_TABLE_FILE_SHOW_HIDDEN = "table_file_show_hidden";
+
+    private static final String SECTION_THEME = "THEME";
+    private static final String OPTION_THEME_CURRENT = "current";
 
     /**
      * 获取实例
@@ -126,4 +130,26 @@ public class MyIni {
     }
 
 
+    /**
+     * 设置当前主题
+     * @param theme 主题
+     */
+    public void setCurrentTheme(Theme theme) {
+        try {
+            _wini.put(SECTION_THEME, OPTION_THEME_CURRENT, theme.getTheme());
+            _wini.store();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 获取当前主题
+     * @return Theme
+     */
+    public Theme getCurrentTheme() {
+        String obj = _wini.get(SECTION_THEME, OPTION_THEME_CURRENT);
+        obj = obj == null ? "-1" : obj;
+        return Theme.getTheme(Integer.parseInt(obj));
+    }
 }
