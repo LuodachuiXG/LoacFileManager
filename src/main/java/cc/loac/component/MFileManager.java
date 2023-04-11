@@ -16,7 +16,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.nio.file.Files;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
 
 /**
@@ -30,7 +30,6 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
     /* ToolBar 面板及组件 */
     private JPanel panel_toolBar;
     private JButton button_toolBar_pre;
-    private JButton button_toolBar_next;
     private JTextField textField_toolBar_path;
     private JButton button_toolBar_go;
 
@@ -76,6 +75,7 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
     // 当前地址在 listPath 中的索引
     private int listPath_index = 0;
 
+
     /* 回调接口 */
     private final IMFileManager imFileManager;
 
@@ -112,21 +112,18 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
         /* 设置 ToolBar 面板 */
         panel_toolBar = new JPanel(new GridBagLayout());
         button_toolBar_pre = new JButton("<");
-        button_toolBar_next = new JButton(">");
         textField_toolBar_path = new JTextField("/");
         button_toolBar_go = new JButton("转到");
 
         button_toolBar_pre.addActionListener(this);
-        button_toolBar_next.addActionListener(this);
         button_toolBar_go.addActionListener(this);
 
         // 按钮默认禁用
         button_toolBar_pre.setEnabled(false);
-        button_toolBar_next.setEnabled(false);
         textField_toolBar_path.addKeyListener(this);
         // 向ToolBar 面板添加组件
         addComponent(panel_toolBar, button_toolBar_pre, 0, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH);
-        addComponent(panel_toolBar, button_toolBar_next, 1, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH);
+//        addComponent(panel_toolBar, button_toolBar_next, 1, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH);
         addComponent(panel_toolBar, textField_toolBar_path, 2, 0, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH);
         addComponent(panel_toolBar, button_toolBar_go, 3, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH);
 
@@ -352,7 +349,7 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
             if (isNotAddList) {
                 // 不将当前地址加入 listPath，这里默认是前进后退操作
             } else {
-                // 将当前地址加入 list
+                // 将当前地址加入 queue
                 listPathAdd(currentPath);
             }
 
@@ -389,7 +386,7 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
      * 将地址加入 listPath,以便前进后退操作
      * 不能大于 10
      * 加入后默认将当前索引指向 listPath 最后一个
-     * @param path
+     * @param path 地址
      */
     private void listPathAdd(String path) {
         if (listPath.size() >= 10) {
@@ -412,27 +409,24 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
 
     }
 
+
     /**
-     * 根据 listPath 设置前进和后退按钮状态
-     * 最大长度不超过 10
+     * 根据 listPath 设置后退按钮状态
      */
     private void updatePreAndNextButtonState() {
+        // listPath 长度小于等于 0，后退按钮禁止
         if (listPath.size() > 0) {
             if (listPath_index != 0 && listPath_index != listPath.size() - 1) {
-                // listPath_index 位于首尾中间，前进后退按钮均启用
+                // listPath_index 位于首尾中间，后退启用
                 button_toolBar_pre.setEnabled(true);
-                button_toolBar_next.setEnabled(true);
             } else if (listPath_index == 0) {
                 button_toolBar_pre.setEnabled(false);
-                button_toolBar_next.setEnabled(true);
             } else if (listPath_index == listPath.size() - 1){
                 button_toolBar_pre.setEnabled(true);
-                button_toolBar_next.setEnabled(false);
             }
         } else {
-            // listPath 长度小于等于 0，前进后退按钮均禁止
+            // listPath 长度小于等于 0，后退禁止
             button_toolBar_pre.setEnabled(false);
-            button_toolBar_next.setEnabled(false);
         }
     }
 
@@ -671,11 +665,6 @@ public class MFileManager extends JPanel implements ActionListener, ComponentLis
         } else if (source == button_toolBar_pre) {
             /* 工具栏-后退按钮点击事件 */
             setCurrentPath(listPath.get(--listPath_index), true);
-
-        } else if (source == button_toolBar_next) {
-            /* 工具栏-前进按钮点击事件 */
-            setCurrentPath(listPath.get(++listPath_index), true);
-
         } else if (source == popupMenu_table_files_compress) {
             /* 文件表格右键菜单项-压缩按钮点击事件 */
             try {
